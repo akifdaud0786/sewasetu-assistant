@@ -147,6 +147,8 @@ def scheme_facts():
                            "gender", "marital status (and late husband's name if widowed, optional)",
                            "village or town", "block", "bank account number and IFSC (account in "
                            "the applicant's own name)"],
+        "mobile_number": "The mobile number used to sign in becomes the application's contact number for "
+                         "SMS and status. It may be the applicant's own or a family member's phone.",
         "one_application_rule": "One active (pending or approved) application per mobile number. "
                                 "A pending application can be withdrawn and a fresh one made.",
         "decision_time": "The block officer decides within %d days. If not decided in %d days, "

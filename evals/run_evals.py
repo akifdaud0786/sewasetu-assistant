@@ -25,6 +25,7 @@ import json
 import os
 import random
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -43,6 +44,8 @@ from portal_auth import get_token
 HERE = os.path.dirname(os.path.abspath(__file__))
 RESULTS = os.path.join(HERE, "..", "app", "evals_data", "results.json")
 MAX_USER_TURNS = 9
+# only the MCP server's tools: no shell, files or web (empty CLI args do not survive claude.CMD on Windows)
+NO_BUILTINS = "Bash,Read,Write,Edit,MultiEdit,Glob,Grep,WebFetch,WebSearch,Task,Agent,TodoWrite,NotebookEdit"
 
 
 # ---------------------------------------------------------------------------
@@ -153,14 +156,16 @@ def setup_persona(ctx, p, state):
 # ---------------------------------------------------------------------------
 
 def claude(args, prompt, timeout=300):
-    proc = subprocess.run(["claude", "-p", prompt] + args, capture_output=True, text=True,
-                          encoding="utf-8", timeout=timeout, cwd=tempfile.gettempdir())
+    # the prompt goes on stdin: claude.CMD on Windows cuts multi-line arguments at the first newline
+    proc = subprocess.run([shutil.which("claude") or "claude", "-p"] + args, input=prompt,
+                          capture_output=True, text=True, encoding="utf-8", timeout=timeout,
+                          cwd=tempfile.gettempdir())
     return proc.stdout
 
 
 def assistant_turn(ctx, mcp_config, session_id, message, model):
     args = ["--model", model, "--mcp-config", mcp_config, "--strict-mcp-config",
-            "--allowedTools", "mcp__sewasetu", "--tools", "", "--max-turns", "16",
+            "--allowedTools", "mcp__sewasetu", "--disallowedTools", NO_BUILTINS, "--max-turns", "16",
             "--output-format", "stream-json", "--verbose"]
     if session_id:
         args += ["--resume", session_id]
@@ -230,7 +235,7 @@ def citizen_turn(p, history, extra, model):
         facts=json.dumps(facts, ensure_ascii=False), document=json.dumps(p.get("document", "none"), ensure_ascii=False),
         behaviour=p.get("behaviour", ""), extra=extra,
         history="\n".join("%s: %s" % ("ASSISTANT" if r == "assistant" else "YOU", t) for r, t in history))
-    out = claude(["--model", model, "--tools", "", "--output-format", "json"], prompt, timeout=180)
+    out = claude(["--model", model, "--disallowedTools", NO_BUILTINS, "--output-format", "json"], prompt, timeout=180)
     try:
         return json.loads(out)["result"].strip()
     except (ValueError, KeyError):
