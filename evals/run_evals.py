@@ -45,7 +45,20 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 RESULTS = os.path.join(HERE, "..", "app", "evals_data", "results.json")
 MAX_USER_TURNS = 9
 # only the MCP server's tools: no shell, files or web (empty CLI args do not survive claude.CMD on Windows)
-NO_BUILTINS = "Bash,Read,Write,Edit,MultiEdit,Glob,Grep,WebFetch,WebSearch,Task,Agent,TodoWrite,NotebookEdit"
+NO_BUILTINS = ("Bash,Read,Write,Edit,MultiEdit,Glob,Grep,WebFetch,WebSearch,Task,Agent,TodoWrite,NotebookEdit,"
+               "Artifact,ArtifactComments,ArtifactData,Skill,PowerShell,SendUserFile")
+
+
+def fresh_accounts(spec):
+    """Every run applies with new bank account numbers (same last four digits). Re-using one account
+    across runs leaves real duplicates in the live portal, which the officer checks then rightly flag."""
+    for p in spec["citizens"]:
+        prefix = "".join(random.choice("0123456789") for _ in range(7))
+        for key in ("bank_account", "wrong_bank_account"):
+            holder = p if key == "wrong_bank_account" else p.get("facts", {})
+            if holder.get(key):
+                n = len(holder[key])
+                holder[key] = random.choice("123456789") + prefix[:n - 5].ljust(n - 5, "0") + holder[key][-4:]
 
 
 # ---------------------------------------------------------------------------
@@ -380,11 +393,13 @@ def main():
     ap.add_argument("--model", default="claude-haiku-4-5")
     ap.add_argument("--citizen-model", default="claude-haiku-4-5")
     ap.add_argument("--label", default="")
+    ap.add_argument("--workers", type=int, default=5, help="citizens played in parallel")
     ap.add_argument("--merge", action="store_true",
                     help="replace these personas' results in the latest run instead of starting a new run")
     a = ap.parse_args()
     base = a.base.rstrip("/")
     spec = yaml.safe_load(open(os.path.join(HERE, "personas.yaml"), encoding="utf-8"))
+    fresh_accounts(spec)
     scheme = requests.get(base + "/assistant", timeout=20)
     ctx = {"base": base, "admin_password": a.admin_password,
            "citizen_url": base + "/mcp/citizen", "officer_url": base + "/mcp/officer",
@@ -395,21 +410,22 @@ def main():
            "assistant_model": a.model, "citizen_model": a.citizen_model, "endpoint": base,
            "label": a.label, "results": []}
     citizen_state = {}
-    for p in spec["citizens"]:
-        if only and p["id"] not in only:
-            continue
+    import threading
+    setup_lock = threading.Lock()
+
+    def run_citizen(p):
         t0 = time.time()
         state = {"mobile": fresh_mobile()}
-        print("== %s (%s)" % (p["id"], state["mobile"]), flush=True)
+        print("== %s (%s) started" % (p["id"], state["mobile"]), flush=True)
         try:
-            setup_persona(ctx, p, state)
-            token, _, _ = get_token(base, ctx["citizen_url"], "citizen", mobile=state["mobile"],
-                                    client_name="Claude Code (eval: %s)" % p["id"])
+            with setup_lock:  # sign-ins and setup one at a time; the conversations run in parallel
+                setup_persona(ctx, p, state)
+                token, _, _ = get_token(base, ctx["citizen_url"], "citizen", mobile=state["mobile"],
+                                        client_name="Claude Code (eval: %s)" % p["id"])
             opening = p["opening"].replace("{neighbour_mobile}", state.get("neighbour_mobile", ""))
             transcript = converse(ctx, p, token, ctx["citizen_url"], opening, a.model, a.citizen_model)
             checks = run_checks(ctx, p, state, token, transcript)
-            apps = mine(ctx, token)
-            state["app_nos"] = [x["application_no"] for x in apps]
+            state["app_nos"] = [x["application_no"] for x in mine(ctx, token)]
         except Exception as e:
             transcript, checks = [{"role": "harness", "text": "harness error: %r" % e}], [
                 {"check": "run completed", "passed": False, "detail": repr(e)}]
@@ -419,8 +435,15 @@ def main():
                "turns": len([t for t in transcript if t["role"] == "user"]),
                "tool_calls": len([t for t in transcript if t["role"] == "tool_call"]),
                "seconds": int(time.time() - t0)}
-        run["results"].append(res)
-        print("   ", "PASS" if res["passed"] else "FAIL", [c["check"] for c in checks if not c["passed"]], flush=True)
+        print("== %s %s %s" % (p["id"], "PASS" if res["passed"] else "FAIL",
+                               [c["check"] for c in checks if not c["passed"]]), flush=True)
+        return res
+
+    from concurrent.futures import ThreadPoolExecutor
+    todo = [p for p in spec["citizens"] if not only or p["id"] in only]
+    officer_token(ctx)  # sign the checker in once, before the threads share it
+    with ThreadPoolExecutor(max_workers=a.workers) as pool:
+        run["results"].extend(pool.map(run_citizen, todo))
     for p in spec["officers"]:
         if only and p["id"] not in only:
             continue
