@@ -56,7 +56,7 @@
   {% for e in p.expect %}<li>{{ e|expectation }}</li>{% endfor %}
   </ul>
   {% if res %}<p style="margin:10px 0 0;font-size:14px"><a href="/eval-dashboard/{{ latest.id }}/{{ p.id }}">Conversation &amp; checks &rarr;</a>
-  <span class="muted">{{ res.turns }} turns, {{ res.tool_calls }} tool calls</span></p>{% endif %}
+  <span class="muted">{{ res.turns }} turns, {{ res.tool_calls }} tool calls{% if res.rerun_note %} &middot; {{ res.rerun_note }}{% endif %}</span></p>{% endif %}
 </div>
 {% endfor %}
 </div>

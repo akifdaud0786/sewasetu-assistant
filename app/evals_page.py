@@ -16,9 +16,15 @@ RESULTS_PATH = os.environ.get("EVAL_RESULTS",
 def _load():
     try:
         with open(RESULTS_PATH, encoding="utf-8") as fh:
-            return json.load(fh)
+            data = json.load(fh)
     except (OSError, ValueError):
-        return {"runs": [], "personas": []}
+        data = {"runs": [], "personas": []}
+    try:
+        with open(os.path.join(os.path.dirname(RESULTS_PATH), "findings.json"), encoding="utf-8") as fh:
+            data["findings"] = json.load(fh)
+    except (OSError, ValueError):
+        pass
+    return data
 
 
 def describe(e):
