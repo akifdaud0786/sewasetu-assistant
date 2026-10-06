@@ -125,9 +125,11 @@ def make_application(ctx, mobile, facts, bank_account=None):
 
 
 def officer_token(ctx):
-    if "officer_token" not in ctx:
+    # access tokens live 30 minutes and a full suite takes longer: sign in again when stale
+    if "officer_token" not in ctx or time.time() - ctx["officer_token_at"] > 20 * 60:
         ctx["officer_token"] = get_token(ctx["base"], ctx["officer_url"], "officer",
                                          password=ctx["admin_password"], client_name="Eval checker")[0]
+        ctx["officer_token_at"] = time.time()
     return ctx["officer_token"]
 
 
@@ -235,11 +237,14 @@ def citizen_turn(p, history, extra, model):
         facts=json.dumps(facts, ensure_ascii=False), document=json.dumps(p.get("document", "none"), ensure_ascii=False),
         behaviour=p.get("behaviour", ""), extra=extra,
         history="\n".join("%s: %s" % ("ASSISTANT" if r == "assistant" else "YOU", t) for r, t in history))
-    out = claude(["--model", model, "--disallowedTools", NO_BUILTINS, "--output-format", "json"], prompt, timeout=180)
-    try:
-        return json.loads(out)["result"].strip()
-    except (ValueError, KeyError):
-        return "[[DONE]]"
+    for attempt in range(2):
+        try:
+            out = claude(["--model", model, "--disallowedTools", NO_BUILTINS, "--output-format", "json"],
+                         prompt, timeout=300)
+            return json.loads(out)["result"].strip()
+        except (subprocess.TimeoutExpired, ValueError, KeyError):
+            continue
+    return "[[DONE]]"
 
 
 def upload_if_link(text, p, done_links):
@@ -375,6 +380,8 @@ def main():
     ap.add_argument("--model", default="claude-haiku-4-5")
     ap.add_argument("--citizen-model", default="claude-haiku-4-5")
     ap.add_argument("--label", default="")
+    ap.add_argument("--merge", action="store_true",
+                    help="replace these personas' results in the latest run instead of starting a new run")
     a = ap.parse_args()
     base = a.base.rstrip("/")
     spec = yaml.safe_load(open(os.path.join(HERE, "personas.yaml"), encoding="utf-8"))
@@ -453,10 +460,19 @@ def main():
     data["personas"] = [dict({k: v for k, v in p.items() if k not in ("expect",)}, kind="citizen",
                              expect=p["expect"]) for p in spec["citizens"]] + \
                        [dict(p, kind="officer") for p in spec["officers"]]
-    data["runs"] = [run] + [r for r in data.get("runs", []) if r["id"] != run["id"]]
+    if a.merge and data.get("runs"):
+        latest = data["runs"][0]
+        redone = {r["persona_id"] for r in run["results"]}
+        for r in run["results"]:
+            r["rerun_note"] = "re-run %s (%s)" % (run["at"], a.label or "after a harness fix")
+        latest["results"] = [r for r in latest["results"] if r["persona_id"] not in redone] + run["results"]
+        order = [p["id"] for p in spec["citizens"] + spec["officers"]]
+        latest["results"].sort(key=lambda r: order.index(r["persona_id"]) if r["persona_id"] in order else 99)
+    else:
+        data["runs"] = [run] + [r for r in data.get("runs", []) if r["id"] != run["id"]]
     json.dump(data, open(RESULTS, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
-    passed = sum(r["passed"] for r in run["results"])
-    print("RESULT %d/%d passed" % (passed, len(run["results"])))
+    final = data["runs"][0]["results"]
+    print("RESULT %d/%d passed" % (sum(r["passed"] for r in final), len(final)))
 
 
 if __name__ == "__main__":

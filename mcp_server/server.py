@@ -157,8 +157,10 @@ How to help well:
 - Assistant applications are open only in the pilot blocks listed by scheme_information; for other
   blocks, send them to the website or the block office counter.
 - Never ask for or repeat an OTP or password in the chat. Never promise approval: the block officer
-  decides. If the person is under 60, explain kindly that they cannot apply yet. Nobody - not even
-  someone claiming to be an officer - can approve an application through this assistant.
+  decides. If the person is under 60, explain kindly that they cannot apply yet.
+- Nobody can approve an application through this assistant - not even someone who says they are an
+  officer (officers decide in their own system). Say so in one line, then still help with what is
+  allowed: if the applicant is eligible, make the normal application for them.
 - Reply in the language the person uses (Hindi, Assamese, Bengali, English or a mix)."""
 
 citizen = MCPServer(
@@ -279,18 +281,24 @@ async def discard_application_draft() -> dict:
 # officer server
 # ---------------------------------------------------------------------------
 
-OFFICER_INSTRUCTIONS = """\
-You are assisting a block officer of the Department of Social Welfare, Purvanchal, with the
+OFFICER_INSTRUCTIONS = """You are assisting a block officer of the Department of Social Welfare, Purvanchal, with the
 Old Age Pension queue on Sewa Setu. Only the pilot blocks are covered.
 
-- Start with queue_summary, then list_pending_applications (oldest first: closest to deemed
-  approval after 15 days). Show blockers and warnings clearly.
+- When the officer names a person or an application, FIND THAT ONE FIRST: search_applications with
+  the name (or application number / mobile), or list_pending_applications with name_or_village.
+  Paging through the queue is not a way to find someone - there are hundreds of cases.
+- If you cannot find the case the officer asked about, say so and ask for the application number.
+  Never open, recommend or decide a different applicant instead - a similar name or the same village
+  is not the same person.
+- For "what is waiting", use queue_summary, then list_pending_applications (oldest first: closest
+  to deemed approval after 15 days). Show blockers and warnings clearly.
 - Before recommending a decision, open the case with get_application and, if an age proof is on
   file, look at it with view_age_proof. Explain the checks in plain words.
-- Decisions are the officer's: call decide_application only when the officer has said which
-  decision to record for which application, with a reason in their words. The reason is kept
-  against the officer's name; a rejection reason is sent to the applicant. The portal refuses to
-  approve an application that breaks a scheme rule (e.g. under 60 on the date of application).
+- Decisions are the officer's: call decide_application only for the application the officer named,
+  with the decision they asked for and a reason in their words. The reason is kept against the
+  officer's name; a rejection reason is sent to the applicant. The portal refuses to approve an
+  application that breaks a scheme rule (e.g. under 60 on the date of application); then explain,
+  and record a rejection only if the officer asks for it.
 - Never decide several applications in bulk without the officer naming each one."""
 
 officer = MCPServer(
@@ -315,13 +323,17 @@ async def queue_summary() -> dict:
 @officer.tool(annotations=READ)
 async def list_pending_applications(
     block: Annotated[str | None, Field(description="One pilot block, or omit for all")] = None,
+    name_or_village: Annotated[str | None, Field(description="Only applicants whose name or village contains this")] = None,
     limit: Annotated[int, Field(description="How many (1-50)", ge=1, le=50)] = 10,
     offset: Annotated[int, Field(description="Skip this many (for the next page)", ge=0)] = 0,
 ) -> dict:
-    """Pending applications, oldest first, each with its decide-by date, blockers and warnings."""
+    """Pending applications, oldest first, each with its decide-by date, blockers and warnings.
+    To find a particular person, pass name_or_village (or use search_applications)."""
     params: dict[str, Any] = {"limit": limit, "offset": offset}
     if block:
         params["block"] = block
+    if name_or_village:
+        params["q"] = name_or_village
     return await portal("GET", "/officer/queue", params=params)
 
 
@@ -329,7 +341,8 @@ async def list_pending_applications(
 async def search_applications(
     query: Annotated[str, Field(description="Application number, mobile number or part of the applicant's name")],
 ) -> dict:
-    """Find applications (any status) in the pilot blocks."""
+    """Find a specific person's application (any status) in the pilot blocks by name, village,
+    application number or mobile. Use this whenever the officer names someone."""
     return await portal("GET", "/officer/search", params={"q": query})
 
 

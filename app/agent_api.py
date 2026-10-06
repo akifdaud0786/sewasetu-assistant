@@ -720,12 +720,18 @@ def api_officer_queue():
         offset = max(0, int(request.args.get("offset", 0)))
     except ValueError:
         return _err("bad_paging", "limit and offset must be numbers")
+    q = (request.args.get("q") or "").strip()
+    where = "status = 'PENDING' AND block IN %s"
+    args = [tuple(blocks)]
+    if q:
+        where += " AND (applicant_name ILIKE %s OR village ILIKE %s OR application_no = %s)"
+        args += ["%" + q + "%", "%" + q + "%", q.upper()]
     conn = portal.get_db()
     cur = conn.cursor()
-    cur.execute("SELECT count(*) FROM applications WHERE status = 'PENDING' AND block IN %s", (tuple(blocks),))
+    cur.execute("SELECT count(*) FROM applications WHERE " + where, args)
     total = cur.fetchone()[0]
-    cur.execute("SELECT " + APP_COLS + " FROM applications WHERE status = 'PENDING' AND block IN %s "
-                "ORDER BY submitted_at ASC LIMIT %s OFFSET %s", (tuple(blocks), limit, offset))
+    cur.execute("SELECT " + APP_COLS + " FROM applications WHERE " + where +
+                " ORDER BY submitted_at ASC LIMIT %s OFFSET %s", args + [limit, offset])
     items = []
     for row in cur.fetchall():
         checks = _checks(cur, row)
@@ -754,8 +760,9 @@ def api_officer_search():
     cur = conn.cursor()
     cur.execute("SELECT application_no, applicant_name, mobile, village, block, status, submitted_at "
                 "FROM applications WHERE block IN %s AND (application_no = %s OR mobile = %s OR "
-                "applicant_name ILIKE %s) ORDER BY submitted_at DESC LIMIT 20",
-                (tuple(portal.AGENT_BLOCKS), q.upper(), q, "%" + q + "%"))
+                "applicant_name ILIKE %s OR village ILIKE %s) "
+                "ORDER BY (status = 'PENDING') DESC, submitted_at DESC LIMIT 20",
+                (tuple(portal.AGENT_BLOCKS), q.upper(), q, "%" + q + "%", "%" + q + "%"))
     rows = cur.fetchall()
     cur.close(); conn.close()
     _log("officer_search", True, "n=%d" % len(rows))
