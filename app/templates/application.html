@@ -11,6 +11,7 @@
   <tr><th>Bank Account</th><td>{{ a[6] }}</td></tr>
   <tr><th>IFSC</th><td>{{ a[7] }}</td></tr>
   <tr><th>Status</th><td><b>{{ a[8] }}</b></td></tr>
+  {% if reason %}<tr><th>Reason</th><td>{{ reason }}</td></tr>{% endif %}
   <tr><th>Submitted</th><td>{{ a[9] }}</td></tr>
   <tr><th>Decided</th><td>{{ a[10] or '-' }}</td></tr>
 </table>
@@ -27,5 +28,9 @@ submit a fresh application with the same mobile number.</p>
 {% elif a[8] in ('WITHDRAWN', 'REJECTED') %}
 <p class="note">This application is {{ a[8].lower() }}. You may
 <a href="/apply">submit a new application</a>.</p>
+{% endif %}
+{% if others %}
+<h3>Other applications from this mobile</h3>
+<ul>{% for oid, ono, ost in others %}<li><a href="/application/{{ oid }}">{{ ono }}</a> - {{ ost }}</li>{% endfor %}</ul>
 {% endif %}
 {% endblock %}

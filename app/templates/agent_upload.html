@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Upload age proof / आयु प्रमाण अपलोड करें</h2>
+{% if state == 'expired' %}
+<div class="flash">This upload link has expired or has already been used. Ask your assistant for a new link.
+<br>यह लिंक समाप्त हो चुका है। अपने सहायक से नया लिंक माँगें।</div>
+{% elif state == 'done' %}
+<p style="font-size:18px;color:#1b7e3c"><b>Uploaded: {{ name }}</b></p>
+<p>Go back to your assistant and tell it the document is uploaded. The application is <b>not submitted yet</b>.
+<br>अपने सहायक को बताइए कि दस्तावेज़ अपलोड हो गया है। आवेदन अभी जमा नहीं हुआ है।</p>
+{% else %}
+{% if error %}<div class="flash">{{ error }}</div>{% endif %}
+<p>For the pension application of mobile number {{ masked }}.</p>
+<p class="note">Birth certificate, school leaving certificate or Voter ID. A clear photo is fine. JPG, PNG or PDF, up to 5 MB.</p>
+<form method="post" enctype="multipart/form-data">
+  <p><input type="file" name="document" accept="image/*,application/pdf" capture="environment" style="font-size:16px"></p>
+  <p><button class="btn" type="submit" style="font-size:18px;padding:12px 28px">Upload / अपलोड करें</button></p>
+</form>
+{% endif %}
+{% endblock %}

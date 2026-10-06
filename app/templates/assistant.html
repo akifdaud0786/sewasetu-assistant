@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Apply with an AI assistant</h2>
+<p>Sewa Setu has an official channel for AI assistants (Claude, ChatGPT and others that support the
+Model Context Protocol). The assistant follows exactly the same rules as this website, and the
+application it makes appears here, on the status portal and at the block office.</p>
+<p><b>Pilot blocks:</b> {{ blocks|join(', ') }}. People in other blocks can apply on this website or
+at the block office. Anyone can ask an assistant about the status of their own application.</p>
+<h3>For citizens and families</h3>
+<p>Add this connector to your assistant: <code>{{ citizen_url }}</code></p>
+<p class="note">You will be asked to sign in here with your mobile number and an OTP. Enter the OTP
+only on the Sewa Setu page, never in a chat. The sign-in ends by itself after 2 hours, and you can end
+it any time from <a href="/status/connections">Connected applications</a> - useful on a shared phone or kiosk.</p>
+<h3>For block officers</h3>
+<p>Officer connector: <code>{{ officer_url }}</code> (departmental login; the assistant sees only
+the pilot blocks' queue and every decision is recorded against the officer's name with its reason).</p>
+{% endblock %}
