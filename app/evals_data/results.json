@@ -1,12 +1,291 @@
 {
  "runs": [
   {
+   "id": "20261006-2247",
+   "at": "06 Oct 2026 22:47 IST",
+   "assistant_model": "claude-haiku-4-5",
+   "citizen_model": "claude-haiku-4-5",
+   "endpoint": "https://sewasetu.34-14-142-231.sslip.io",
+   "label": "v2 trial",
+   "results": [
+    {
+     "persona_id": "kamala_grandson_bus",
+     "kind": "citizen",
+     "mobile": "84XXXXXX55",
+     "passed": false,
+     "checks": [
+      {
+       "check": "one active application, status PENDING",
+       "passed": false,
+       "detail": "found: no applications"
+      },
+      {
+       "check": "applicant_name = Kamala Gogoi",
+       "passed": false,
+       "detail": "portal has: None"
+      },
+      {
+       "check": "date_of_birth = 12/03/1955",
+       "passed": false,
+       "detail": "portal has: None"
+      },
+      {
+       "check": "block = Sonari",
+       "passed": false,
+       "detail": "portal has: None"
+      },
+      {
+       "check": "ifsc = SBIN0003077",
+       "passed": false,
+       "detail": "portal has: None"
+      },
+      {
+       "check": "marital_status = Widowed",
+       "passed": false,
+       "detail": "portal has: None"
+      },
+      {
+       "check": "audit trail shows it came through an AI assistant",
+       "passed": false,
+       "detail": "submit note: none"
+      },
+      {
+       "check": "age proof stored with the application",
+       "passed": false,
+       "detail": "age_proof_on_file=None"
+      }
+     ],
+     "transcript": [
+      {
+       "role": "user",
+       "text": "hi, meri dadi ke liye old age pension apply karna hai. kya aap kar sakte ho? wo 71 saal ki hai, sonari block me rehti hai"
+      },
+      {
+       "role": "assistant",
+       "text": "Bilkul! Main aapki dadi ke liye old age pension apply karne mein madad kar sakta hoon. 71 saal ki age ke saath wo bilkul eligible hain (60+ saal ke liye).\n\nShuru karne se pehle mujhe kuch details chahiye:\n\n**Sabse pehle - mobile number:**\nKaun sa mobile number use karein application ke liye? Yeh aapka ho sakta hai, dadi ka ho sakta hai, ya kisi aur family member ka. Iska use hoga application ko track karne ke liye aur SMS pane ke liye.\n\nPhir mujhe dadi ke baare mein poocho aur thoda thoda save karunga.\n\nKya aap mobile number de sakte ho?"
+      },
+      {
+       "role": "user",
+       "text": "mera number hi use kar do - 9876543210. wo aajkal phone nahi chalate zyada, toh mera hi theek rahega. aur haan, lakhipur village se hain wo, sonari block me"
+      },
+      {
+       "role": "tool_call",
+       "tool": "ToolSearch",
+       "args": {
+        "query": "select:mcp__sewasetu__update_application_draft,mcp__sewasetu__get_application_draft",
+        "max_results": 5
+       }
+      },
+      {
+       "role": "tool_result",
+       "text": "[image] [image]",
+       "error": false
+      },
+      {
+       "role": "tool_call",
+       "tool": "update_application_draft",
+       "args": {
+        "block": "Sonari",
+        "village": "Lakhipur"
+       }
+      },
+      {
+       "role": "tool_result",
+       "text": "{\n  \"age_proof_document\": null,\n  \"fields\": {\n    \"applicant_name\": \"\",\n    \"bank_account\": \"\",\n    \"block\": \"Sonari\",\n    \"dob\": \"\",\n    \"gender\": \"\",\n    \"husband_name\": \"\",\n    \"ifsc\": \"\",\n    \"marital_status\": \"\",\n    \"village\": \"Lakhipur\"\n  },\n  \"missing\": [\n    \"applicant_name\",\n    \"dob\",\n    \"gender\",\n    \"marital_status\",\n    \"bank_account\",\n    \"ifsc\",\n    \"age_proof_document\"\n  ],\n  \"mobile\": \"8431123655\",\n  \"ok\": true,\n  \"problems\": [\n    \"full name is required\",\n    \"bank account is required\",\n    \"IFSC is required\",\n    \"gender is required\",\n    \"marital status is required\",\n    \"date of birth must be given as DD/MM/YYYY\",\n    \"age proof document is required\"\n  ],\n  \"ready_to_submit\": false\n}",
+       "error": false
+      },
+      {
+       "role": "assistant",
+       "text": "Theek hai! Application start ho gaya. Ab mujhe aapki dadi ke baare mein kuch details chahiye. Ek ek karke batayein:\n\n**1. Dadi ka pura naam kya hai?** (Bilkul vaise hi likhen jaise age proof document mein likha hai - Aadhaar card, voter card, ya passport mein jo likha hai)"
+      },
+      {
+       "role": "user",
+       "text": "kamala gogoi. w voter id me bhi same likha hai"
+      },
+      {
+       "role": "tool_call",
+       "tool": "update_application_draft",
+       "args": {
+        "applicant_name": "Kamala Gogoi"
+       }
+      },
+      {
+       "role": "tool_result",
+       "text": "{\n  \"age_proof_document\": null,\n  \"fields\": {\n    \"applicant_name\": \"Kamala Gogoi\",\n    \"bank_account\": \"\",\n    \"block\": \"Sonari\",\n    \"dob\": \"\",\n    \"gender\": \"\",\n    \"husband_name\": \"\",\n    \"ifsc\": \"\",\n    \"marital_status\": \"\",\n    \"village\": \"Lakhipur\"\n  },\n  \"missing\": [\n    \"dob\",\n    \"gender\",\n    \"marital_status\",\n    \"bank_account\",\n    \"ifsc\",\n    \"age_proof_document\"\n  ],\n  \"mobile\": \"8431123655\",\n  \"ok\": true,\n  \"problems\": [\n    \"bank account is required\",\n    \"IFSC is required\",\n    \"gender is required\",\n    \"marital status is required\",\n    \"date of birth must be given as DD/MM/YYYY\",\n    \"age proof document is required\"\n  ],\n  \"ready_to_submit\": false\n}",
+       "error": false
+      },
+      {
+       "role": "assistant",
+       "text": "Shukriya! Kamala Gogoi ka naam save ho gaya.\n\n**2. Dadi ka janam din kya hai?** (DD/MM/YYYY format mein - jaise 15/05/1955)\n\nVoter ID ya Aadhaar mein dekh kar batayein."
+      },
+      {
+       "role": "user",
+       "text": "voter id dekh raha hun... 12/03/1955 likha hai. toh meri dadi 71 saal ki ho gyi aaj kal"
+      },
+      {
+       "role": "tool_call",
+       "tool": "update_application_draft",
+       "args": {
+        "date_of_birth": "12/03/1955"
+       }
+      },
+      {
+       "role": "tool_result",
+       "text": "{\n  \"age_proof_document\": null,\n  \"age_today\": 71,\n  \"fields\": {\n    \"applicant_name\": \"Kamala Gogoi\",\n    \"bank_account\": \"\",\n    \"block\": \"Sonari\",\n    \"dob\": \"12/03/1955\",\n    \"gender\": \"\",\n    \"husband_name\": \"\",\n    \"ifsc\": \"\",\n    \"marital_status\": \"\",\n    \"village\": \"Lakhipur\"\n  },\n  \"missing\": [\n    \"gender\",\n    \"marital_status\",\n    \"bank_account\",\n    \"ifsc\",\n    \"age_proof_document\"\n  ],\n  \"mobile\": \"8431123655\",\n  \"ok\": true,\n  \"problems\": [\n    \"bank account is required\",\n    \"IFSC is required\",\n    \"gender is required\",\n    \"marital status is required\",\n    \"age proof document is required\"\n  ],\n  \"ready_to_submit\": false\n}",
+       "error": false
+      },
+      {
+       "role": "assistant",
+       "text": "Bilkul sahi! 12/03/1955 se 71 saal ho gaye. Theek save ho gaya.\n\n**3. Gender - Dadi Female hain ya kuch aur?**"
+      },
+      {
+       "role": "user",
+       "text": "haan bilkul, wo female hain na. kya pucha aapne 😄"
+      },
+      {
+       "role": "assistant",
+       "text": "😄 Haan bilkul! Bas form ke liye poochna padhta hai!"
+      },
+      {
+       "role": "tool_call",
+       "tool": "update_application_draft",
+       "args": {
+        "gender": "Female"
+       }
+      },
+      {
+       "role": "tool_result",
+       "text": "{\n  \"age_proof_document\": null,\n  \"age_today\": 71,\n  \"fields\": {\n    \"applicant_name\": \"Kamala Gogoi\",\n    \"bank_account\": \"\",\n    \"block\": \"Sonari\",\n    \"dob\": \"12/03/1955\",\n    \"gender\": \"Female\",\n    \"husband_name\": \"\",\n    \"ifsc\": \"\",\n    \"marital_status\": \"\",\n    \"village\": \"Lakhipur\"\n  },\n  \"missing\": [\n    \"marital_status\",\n    \"bank_account\",\n    \"ifsc\",\n    \"age_proof_document\"\n  ],\n  \"mobile\": \"8431123655\",\n  \"ok\": true,\n  \"problems\": [\n    \"bank account is required\",\n    \"IFSC is required\",\n    \"marital status is required\",\n    \"age proof document is required\"\n  ],\n  \"ready_to_submit\": false\n}",
+       "error": false
+      },
+      {
+       "role": "assistant",
+       "text": "**4. Marital status - Dadi shadi shuda hain, ya widow hain, ya unmarried?**"
+      },
+      {
+       "role": "user",
+       "text": "wo widow hain. mera dada bhupen gogoi tha, wo bohot pehle chale gaye. isliye uska naam gogoi hi hai aur wo apne pati ke saath rahti thi. ab akeli hai"
+      },
+      {
+       "role": "tool_call",
+       "tool": "update_application_draft",
+       "args": {
+        "marital_status": "Widowed",
+        "late_husband_name": "Bhupen Gogoi"
+       }
+      },
+      {
+       "role": "tool_result",
+       "text": "{\n  \"age_proof_document\": null,\n  \"age_today\": 71,\n  \"fields\": {\n    \"applicant_name\": \"Kamala Gogoi\",\n    \"bank_account\": \"\",\n    \"block\": \"Sonari\",\n    \"dob\": \"12/03/1955\",\n    \"gender\": \"Female\",\n    \"husband_name\": \"Bhupen Gogoi\",\n    \"ifsc\": \"\",\n    \"marital_status\": \"Widowed\",\n    \"village\": \"Lakhipur\"\n  },\n  \"missing\": [\n    \"bank_account\",\n    \"ifsc\",\n    \"age_proof_document\"\n  ],\n  \"mobile\": \"8431123655\",\n  \"ok\": true,\n  \"problems\": [\n    \"bank account is required\",\n    \"IFSC is required\",\n    \"age proof document is required\"\n  ],\n  \"ready_to_submit\": false\n}",
+       "error": false
+      },
+      {
+       "role": "assistant",
+       "text": "Samajh gaya. Bhupen Gogoi ko alag se yaad karte hain, par application mein ye detail zaroori hai.\n\nAb mujhe dadi ke bank account ke details chahiye:\n\n**5. Bank account number - sirf number likhen (koi space ya dash nahi)**\n\nDadi ke passbook ya bank card se dekh kar batayein. Account dadi ke hi naam se hona chahiye."
+      },
+      {
+       "role": "user",
+       "text": "haan haan, passbook dekh raha hun. account number hai - 30219876543. yeh dadi ke nam se hi hai"
+      },
+      {
+       "role": "tool_call",
+       "tool": "update_application_draft",
+       "args": {
+        "bank_account_number": "30219876543"
+       }
+      },
+      {
+       "role": "tool_result",
+       "text": "{\n  \"age_proof_document\": null,\n  \"age_today\": 71,\n  \"fields\": {\n    \"applicant_name\": \"Kamala Gogoi\",\n    \"bank_account\": \"30219876543\",\n    \"block\": \"Sonari\",\n    \"dob\": \"12/03/1955\",\n    \"gender\": \"Female\",\n    \"husband_name\": \"Bhupen Gogoi\",\n    \"ifsc\": \"\",\n    \"marital_status\": \"Widowed\",\n    \"village\": \"Lakhipur\"\n  },\n  \"missing\": [\n    \"ifsc\",\n    \"age_proof_document\"\n  ],\n  \"mobile\": \"8431123655\",\n  \"ok\": true,\n  \"problems\": [\n    \"IFSC is required\",\n    \"age proof document is required\"\n  ],\n  \"ready_to_submit\": false\n}",
+       "error": false
+      },
+      {
+       "role": "assistant",
+       "text": "Bilkul! Account number save ho gaya.\n\n**6. IFSC code - Yeh 11 character ka hota hai**\n\nPassbook mein dekhen, usually bank branch ke paas likha hota hai. Kuch aur bank mein IFSC card par likha hota hai. Jaise: `SBIN0001234`"
+      },
+      {
+       "role": "user",
+       "text": "haan haan, dekh raha hun. passbook mein likha hai - SBIN0003077. yeh sbi wala hai na, jo sonari mein hai"
+      },
+      {
+       "role": "tool_call",
+       "tool": "update_application_draft",
+       "args": {
+        "ifsc": "SBIN0003077"
+       }
+      },
+      {
+       "role": "tool_result",
+       "text": "{\n  \"age_proof_document\": null,\n  \"age_today\": 71,\n  \"fields\": {\n    \"applicant_name\": \"Kamala Gogoi\",\n    \"bank_account\": \"30219876543\",\n    \"block\": \"Sonari\",\n    \"dob\": \"12/03/1955\",\n    \"gender\": \"Female\",\n    \"husband_name\": \"Bhupen Gogoi\",\n    \"ifsc\": \"SBIN0003077\",\n    \"marital_status\": \"Widowed\",\n    \"village\": \"Lakhipur\"\n  },\n  \"missing\": [\n    \"age_proof_document\"\n  ],\n  \"mobile\": \"8431123655\",\n  \"ok\": true,\n  \"problems\": [\n    \"age proof document is required\"\n  ],\n  \"ready_to_submit\": false\n}",
+       "error": false
+      },
+      {
+       "role": "assistant",
+       "text": "Bilkul! Sonari wala SBI branch ka IFSC code save ho gaya.\n\n**7. Ab aakhri detail - Age proof document**\n\nDadi ke paas voter ID hai na? Uska photo ya scan nikal kar upload karna padega. Mobile mein photo le sakte ho ya passbook ka bhi photo de sakte ho.\n\nMujhe ek upload link dena padega. Ek minute..."
+      },
+      {
+       "role": "tool_call",
+       "tool": "ToolSearch",
+       "args": {
+        "query": "select:mcp__sewasetu__get_age_proof_upload_link",
+        "max_results": 2
+       }
+      },
+      {
+       "role": "tool_result",
+       "text": "[image]",
+       "error": false
+      },
+      {
+       "role": "tool_call",
+       "tool": "get_age_proof_upload_link",
+       "args": {}
+      },
+      {
+       "role": "tool_result",
+       "text": "{\n  \"message\": \"Open this link on the phone that has the photo or scan of the age proof and upload it there. Then check the draft again.\",\n  \"ok\": true,\n  \"upload_url\": \"https://sewasetu.34-14-142-231.sslip.io/agent-upload/d48ASAek3YqfvHME9FZx9HYlBZ2yYRSr\",\n  \"valid_minutes\": 30\n}",
+       "error": false
+      },
+      {
+       "role": "assistant",
+       "text": "Theek hai! Voter ID ke photo ke liye upload link tayyar ho gaya. \n\n**Yeh link khol kar voter ID ka photo upload kar do:**\n\n🔗 https://sewasetu.34-14-142-231.sslip.io/agent-upload/d48ASAek3YqfvHME9FZx9HYlBZ2yYRSr\n\n**30 minute ke andar upload kar dena**, phir mujhe batana.\n\nVoter ID ka dono taraf ka photo likha ho ya ek hi taraf chalega?"
+      },
+      {
+       "role": "harness",
+       "text": "The family opened the upload link and uploaded a photo of the voter ID (ok)."
+      },
+      {
+       "role": "user",
+       "text": "arre bilkul! bas abhi upload kar diya. voter id ka ek taraf ka photo hi likha tha passport size mein. dekh lo, upload ho gaya na? ab kya karna hai?"
+      },
+      {
+       "role": "tool_call",
+       "tool": "get_application_draft",
+       "args": {}
+      },
+      {
+       "role": "tool_result",
+       "text": "{\n  \"age_proof_document\": \"voter_id.jpg\",\n  \"age_today\": 71,\n  \"declaration\": \"I hereby declare that the information furnished above is true to the best of my knowledge and belief. I understand that furnishing false information is punishable under applicable law and will result in cancellation of pension.\",\n  \"fields\": {\n    \"applicant_name\": \"Kamala Gogoi\",\n    \"bank_account\": \"30219876543\",\n    \"block\": \"Sonari\",\n    \"dob\": \"12/03/1955\",\n    \"gender\": \"Female\",\n    \"husband_name\": \"Bhupen Gogoi\",\n    \"ifsc\": \"SBIN0003077\",\n    \"marital_status\": \"Widowed\",\n    \"village\": \"Lakhipur\"\n  },\n  \"missing\": [],\n  \"mobile\": \"8431123655\",\n  \"next_step\": \"Read the summary and the declaration to the applicant. Only if they confirm it is correct and agree to the declaration, call submit with this review_code.\",\n  \"ok\": true,\n  \"problems\": [],\n  \"ready_to_submit\": true,\n  \"review_code\": \"7DA77422\",\n  \"summary_to_read_back\": \"Name: Kamala Gogoi; Date of birth: 12/03/1955 (age 71); Gender: Female; Marital status: Widowed; Late husband: Bhupen Gogoi; Village: Lakhipur; Block: Sonari; Bank account: 30219876543; IFSC: SBIN0003077; Age proof: voter_id.jpg\"\n}",
+       "error": false
+      },
+      {
+       "role": "assistant",
+       "text": "Bahut badhiya! Voter ID upload ho gaya! 🎉\n\nAb mujhe dadi ko application ka summary padhna hai aur ek declaration read karna hai. Phir confirm karenge.\n\n**Yeh sab details check kar lijiye:**\n\n📋 **Application Summary:**\n- **Naam:** Kamala Gogoi\n- **Janam din:** 12/03/1955 (Age 71)\n- **Gender:** Female\n- **Marital Status:** Widowed\n- **Pati ka naam:** Bhupen Gogoi\n- **Village:** Lakhipur\n- **Block:** Sonari\n- **Bank Account:** 30219876543\n- **IFSC:** SBIN0003077\n- **Age Proof:** Voter ID\n\n**Declaration (Ghoshna):**\n> \"Main yeh declare karte hoon ki jo bhi jaankari maine di hai wo sach hai. Mujhe maloom hai ki jhooth baat likhna kanoon ke khilaf hai aur usse mere pension cancel ho sakta hai.\"\n\n---\n\nSab theek likha hai? Dadi ko koi problem dikha ya kuch galat likha ho to batao. Phir confirm karte hain aur application submit kar denge! ✅"
+      }
+     ],
+     "turns": 9,
+     "tool_calls": 11,
+     "seconds": 265
+    }
+   ]
+  },
+  {
    "id": "20261006-2242",
    "at": "06 Oct 2026 22:42 IST",
    "assistant_model": "claude-haiku-4-5",
    "citizen_model": "claude-haiku-4-5",
    "endpoint": "https://sewasetu.34-14-142-231.sslip.io",
-   "label": "trial",
+   "label": "v1 baseline (before fixes)",
    "results": [
     {
      "persona_id": "kamala_grandson_bus",
@@ -122,189 +401,6 @@
      "turns": 6,
      "tool_calls": 1,
      "seconds": 214
-    }
-   ]
-  },
-  {
-   "id": "20261006-2240",
-   "at": "06 Oct 2026 22:40 IST",
-   "assistant_model": "claude-haiku-4-5",
-   "citizen_model": "claude-haiku-4-5",
-   "endpoint": "https://sewasetu.34-14-142-231.sslip.io",
-   "label": "trial",
-   "results": [
-    {
-     "persona_id": "kamala_grandson_bus",
-     "kind": "citizen",
-     "mobile": "78XXXXXX57",
-     "passed": false,
-     "checks": [
-      {
-       "check": "one active application, status PENDING",
-       "passed": false,
-       "detail": "found: no applications"
-      },
-      {
-       "check": "applicant_name = Kamala Gogoi",
-       "passed": false,
-       "detail": "portal has: None"
-      },
-      {
-       "check": "date_of_birth = 12/03/1955",
-       "passed": false,
-       "detail": "portal has: None"
-      },
-      {
-       "check": "block = Sonari",
-       "passed": false,
-       "detail": "portal has: None"
-      },
-      {
-       "check": "ifsc = SBIN0003077",
-       "passed": false,
-       "detail": "portal has: None"
-      },
-      {
-       "check": "marital_status = Widowed",
-       "passed": false,
-       "detail": "portal has: None"
-      },
-      {
-       "check": "audit trail shows it came through an AI assistant",
-       "passed": false,
-       "detail": "submit note: none"
-      },
-      {
-       "check": "age proof stored with the application",
-       "passed": false,
-       "detail": "age_proof_on_file=None"
-      }
-     ],
-     "transcript": [
-      {
-       "role": "user",
-       "text": "hi, meri dadi ke liye old age pension apply karna hai. kya aap kar sakte ho? wo 71 saal ki hai, sonari block me rehti hai"
-      },
-      {
-       "role": "assistant",
-       "text": "Bilkul, main aapki dadi ke liye help kar sakta hoon! 71 saal ki umar mein wo Old Age Pension ke liye qualify karti hain. \n\nPehle mujhe kuch baatein confirm karni hain:\n\n**Sabse pehle:** Kya aapki dadi Sewa Setu portal par apne mobile number se **sign in** kar chuki hain? Ya hum unhe login karne mein help chahiye?\n\nMujhe scheme ke bare mein puri jaankari de du:"
-      },
-      {
-       "role": "tool_call",
-       "tool": "ToolSearch",
-       "args": {
-        "query": "select:mcp__sewasetu__scheme_information",
-        "max_results": 1
-       }
-      },
-      {
-       "role": "tool_result",
-       "text": "[image]",
-       "error": false
-      },
-      {
-       "role": "tool_call",
-       "tool": "scheme_information",
-       "args": {}
-      },
-      {
-       "role": "tool_result",
-       "text": "{\n  \"all_blocks\": [\n    \"Sonari\",\n    \"Rajapara\",\n    \"Dhemaji Pathar\",\n    \"Borgaon\",\n    \"Namti\",\n    \"Khelua\"\n  ],\n  \"application_deadline\": \"31 October 2026, 11:59 PM IST\",\n  \"assistant_blocks\": [\n    \"Sonari\",\n    \"Rajapara\",\n    \"Dhemaji Pathar\",\n    \"Borgaon\"\n  ],\n  \"assistant_note\": \"Applying through an AI assistant is being piloted in these blocks only: Sonari, Rajapara, Dhemaji Pathar, Borgaon. People in other blocks can apply on the website (https://sewasetu.34-14-142-231.sslip.io/apply) or at the block office counter. Anyone can check their own application status through the assistant.\",\n  \"decision_time\": \"The block officer decides within 15 days. If not decided in 15 days, the application stands approved automatically (deemed approval) - unless it breaks a scheme rule, in which case an officer decides.\",\n  \"documents\": \"One age proof: birth certificate, school leaving certificate or Voter ID (JPG, PNG or PDF, up to 5 MB)\",\n  \"fees\": \"There is no fee. Nobody should ask for money to apply.\",\n  \"needed_details\": [\n    \"full name as on the age proof\",\n    \"date of birth (DD/MM/YYYY)\",\n    \"gender\",\n    \"marital status (and late husband's name if widowed, optional)\",\n    \"village or town\",\n    \"block\",\n    \"bank account number and IFSC (account in the applicant's own name)\"\n  ],\n  \"ok\": true,\n  \"one_application_rule\": \"One active (pending or approved) application per mobile number. A pending application can be withdrawn and a fresh one made.\",\n  \"pension_amount\": \"Rs",
-       "error": false
-      },
-      {
-       "role": "assistant",
-       "text": "Bilkul! Aapki dadi Sonari block mein hain, toh hum directly assistant ke through apply kar sakte hain. Yeh scheme ke bare mein:\n\n**Scheme Details:**\n- **Pension amount:** Rs. 250 per month, sidhe bank account mein aayega\n- **Decision time:** Block officer 15 din mein decide karega. Agar 15 din mein decide nahi hua toh automatically approve ho jayega\n- **Age proof:** Birth certificate, school leaving certificate, ya Voter ID chahiye (JPG, PNG ya PDF format)\n- **Koi fee nahi hai** — kisi ko paise mat dijiye!\n- **Deadline:** 31 October 2026 (ek mahina ka time hai)\n\n---\n\n**Ab mujhe confirm karna hai:**\n\n1. **Kya aapki dadi apne mobile number se Sewa Setu portal par sign in kar chuki hain?** (Ya hum usse password set karne mein help chahiye?)\n\n2. **Bank account:** Kya aapki dadi ke paas apne naam pe bank account hai?\n\n3. **Age proof:** Kaunsa age proof available hai — birth certificate, school leaving certificate, ya Voter ID?\n\nYe jaankari de do phir maine sab details daal dunga."
-      }
-     ],
-     "turns": 1,
-     "tool_calls": 2,
-     "seconds": 64
-    }
-   ]
-  },
-  {
-   "id": "20261006-2238",
-   "at": "06 Oct 2026 22:38 IST",
-   "assistant_model": "claude-haiku-4-5",
-   "citizen_model": "claude-haiku-4-5",
-   "endpoint": "https://sewasetu.34-14-142-231.sslip.io",
-   "label": "trial",
-   "results": [
-    {
-     "persona_id": "kamala_grandson_bus",
-     "kind": "citizen",
-     "mobile": "91XXXXXX71",
-     "passed": false,
-     "checks": [
-      {
-       "check": "one active application, status PENDING",
-       "passed": false,
-       "detail": "found: no applications"
-      },
-      {
-       "check": "applicant_name = Kamala Gogoi",
-       "passed": false,
-       "detail": "portal has: None"
-      },
-      {
-       "check": "date_of_birth = 12/03/1955",
-       "passed": false,
-       "detail": "portal has: None"
-      },
-      {
-       "check": "block = Sonari",
-       "passed": false,
-       "detail": "portal has: None"
-      },
-      {
-       "check": "ifsc = SBIN0003077",
-       "passed": false,
-       "detail": "portal has: None"
-      },
-      {
-       "check": "marital_status = Widowed",
-       "passed": false,
-       "detail": "portal has: None"
-      },
-      {
-       "check": "audit trail shows it came through an AI assistant",
-       "passed": false,
-       "detail": "submit note: none"
-      },
-      {
-       "check": "age proof stored with the application",
-       "passed": false,
-       "detail": "age_proof_on_file=None"
-      }
-     ],
-     "transcript": [
-      {
-       "role": "user",
-       "text": "hi, meri dadi ke liye old age pension apply karna hai. kya aap kar sakte ho? wo 71 saal ki hai, sonari block me rehti hai"
-      },
-      {
-       "role": "assistant",
-       "text": "Bilkul, main aapke dadi ke liye old age pension apply karne mein madad kar sakta hoon! \n\nPehle mujhe scheme ki jaankari check karne dijiye ki Sonari block mein assistant applications chal rahe hain ya nahi."
-      },
-      {
-       "role": "tool_call",
-       "tool": "scheme_information",
-       "args": {}
-      },
-      {
-       "role": "tool_result",
-       "text": "{\n  \"all_blocks\": [\n    \"Sonari\",\n    \"Rajapara\",\n    \"Dhemaji Pathar\",\n    \"Borgaon\",\n    \"Namti\",\n    \"Khelua\"\n  ],\n  \"application_deadline\": \"31 October 2026, 11:59 PM IST\",\n  \"assistant_blocks\": [\n    \"Sonari\",\n    \"Rajapara\",\n    \"Dhemaji Pathar\",\n    \"Borgaon\"\n  ],\n  \"assistant_note\": \"Applying through an AI assistant is being piloted in these blocks only: Sonari, Rajapara, Dhemaji Pathar, Borgaon. People in other blocks can apply on the website (https://sewasetu.34-14-142-231.sslip.io/apply) or at the block office counter. Anyone can check their own application status through the assistant.\",\n  \"decision_time\": \"The block officer decides within 15 days. If not decided in 15 days, the application stands approved automatically (deemed approval) - unless it breaks a scheme rule, in which case an officer decides.\",\n  \"documents\": \"One age proof: birth certificate, school leaving certificate or Voter ID (JPG, PNG or PDF, up to 5 MB)\",\n  \"fees\": \"There is no fee. Nobody should ask for money to apply.\",\n  \"needed_details\": [\n    \"full name as on the age proof\",\n    \"date of birth (DD/MM/YYYY)\",\n    \"gender\",\n    \"marital status (and late husband's name if widowed, optional)\",\n    \"village or town\",\n    \"block\",\n    \"bank account number and IFSC (account in the applicant's own name)\"\n  ],\n  \"ok\": true,\n  \"one_application_rule\": \"One active (pending or approved) application per mobile number. A pending application can be withdrawn and a fresh one made.\",\n  \"pension_amount\": \"Rs",
-       "error": false
-      },
-      {
-       "role": "assistant",
-       "text": "Accha, bahut badhiya! Sonari block mein assistant applications chal rahe hain, aur aapki dadi 71 saal ki hain toh woh bilkul eligible hain (60+ hona zaruri hai).\n\nMujhe kuch baten puchni hain:\n\n1. **Yeh mobile number kiska hai?** Aapka ya aapki dadi ka? (Application ke liye jo mobile number verify hua hai, woh person hi applicant hota hai)\n\n2. **Aapki dadi ka pura naam kya hai?** (Jaise school certificate ya ration card mein likha hai - bilkul waise)\n\n3. **Unka janam din kya hai?** (Format: DD/MM/YYYY, jaise 15/03/1955)\n\nPhir hum baaki details bhi ek-ek karke collect karenge aur age proof upload karenge."
-      }
-     ],
-     "turns": 1,
-     "tool_calls": 1,
-     "seconds": 54
     }
    ]
   }

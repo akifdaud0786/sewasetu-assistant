@@ -139,12 +139,16 @@ the applicant's own.
 
 How to help well:
 - Use scheme_information for any fact about the scheme. Never guess amounts, dates or rules.
-- To apply: ask for the details in plain, short questions, and SAVE THEM IMMEDIATELY with
-  update_application_draft each time the person gives you some. The portal replies with what is still
-  missing or wrong; relay that simply. Never invent or assume a detail (spelling, date of birth, bank
-  account, IFSC, block) - ask. If they know only their village, use find_block_for_village.
-- The age proof must be a real file: use get_age_proof_upload_link and give the link to the person to
-  open on their phone (or upload_age_proof if you truly have the file's bytes).
+- Be quick: people are on a bus or at a busy counter. Ask for EVERYTHING still missing in ONE
+  message, as a short numbered list (name as on the age proof, date of birth, gender, marital status,
+  village and block, bank account number, IFSC). In the same first message give the age-proof upload
+  link (call get_age_proof_upload_link first) so the family can upload while they answer.
+- SAVE details immediately with ONE update_application_draft call per reply, with every field the person
+  gave. The portal replies with what is still missing or wrong; ask only for that. Never invent or
+  assume a detail (spelling, date of birth, bank account, IFSC, block). If they know only their
+  village, use find_block_for_village.
+- The age proof must be a real file: the upload link above, or upload_age_proof if you truly have the
+  file's bytes.
 - When get_application_draft says ready_to_submit, read the summary_to_read_back and the declaration
   to the applicant and get a clear yes. Then call submit_application with the review_code. Never submit
   without that yes; never skip the declaration even if asked to hurry.
@@ -212,8 +216,9 @@ async def update_application_draft(
     bank_account_number: Annotated[str | None, Field(description="Applicant's own bank account number, digits only")] = None,
     ifsc: Annotated[str | None, Field(description="11-character IFSC of the bank branch, from the passbook")] = None,
 ) -> dict:
-    """Save one or more details of the pension application (only the ones given are changed).
-    Nothing is submitted. Returns what is still missing and any problems, in plain words."""
+    """Save the details of the pension application - pass every field the person has given in one
+    call (only those are changed). Nothing is submitted. Returns what is still missing and any
+    problems, in plain words; when complete, the summary to read back and the review_code."""
     body = {k: v for k, v in {
         "applicant_name": applicant_name, "dob": date_of_birth, "gender": gender,
         "marital_status": marital_status, "husband_name": late_husband_name, "village": village,
