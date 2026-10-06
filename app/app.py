@@ -34,6 +34,16 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 config = configparser.ConfigParser()
 config.read(os.path.join(BASE_DIR, "config", "app.ini"))
 
+# Deployment settings come from the environment where given, so the same code runs in
+# docker compose, on a VM and on a developer laptop. app.ini holds the defaults.
+for _section, _key, _env in (("database", "host", "DB_HOST"), ("database", "port", "DB_PORT"),
+                             ("database", "name", "DB_NAME"), ("database", "user", "DB_USER"),
+                             ("database", "password", "DB_PASSWORD"),
+                             ("app", "sms_gateway_url", "SMS_GATEWAY_URL"),
+                             ("app", "upload_dir", "UPLOAD_DIR")):
+    if os.environ.get(_env):
+        config.set(_section, _key, os.environ[_env])
+
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY") or config.get("app", "secret_key")
 # Two hours: elderly applicants fill the form slowly; the draft lives in the session.
@@ -55,9 +65,17 @@ MIN_AGE = config.getint("pension", "min_age")
 SLA_DAYS = config.getint("pension", "sla_days")
 
 BLOCKS = ["Sonari", "Rajapara", "Dhemaji Pathar", "Borgaon", "Namti", "Khelua"]
+GENDERS = ("Male", "Female", "Other")
+MARITAL_STATUSES = ("Married", "Unmarried", "Widowed")
+MAX_AGE = 120
+
+# Blocks where applications may be made through an AI assistant (the agent pilot). The
+# web form and the counter are unaffected: they serve every block.
+AGENT_BLOCKS = [b.strip() for b in os.environ.get(
+    "AGENT_BLOCKS", "Sonari,Rajapara,Dhemaji Pathar,Borgaon").split(",") if b.strip() in BLOCKS]
 
 import logging
-_logdir = "/var/log/sewasetu"
+_logdir = os.environ.get("LOG_DIR", "/var/log/sewasetu")
 try:
     os.makedirs(_logdir, exist_ok=True)
     _fh = logging.FileHandler(os.path.join(_logdir, "sewasetu-app.log"))
@@ -90,6 +108,11 @@ def hash_password(p):
     return hashlib.sha256(p.encode("utf-8")).hexdigest()
 
 
+def valid_mobile(mobile):
+    """An Indian mobile number: 10 digits, starting 6-9."""
+    return bool(re.fullmatch(r"[6-9]\d{9}", mobile or ""))
+
+
 def send_sms(mobile, text):
     try:
         requests.post(SMS_GATEWAY_URL + "/api/send",
@@ -106,13 +129,13 @@ def deadline_remaining():
 
 
 def new_application_no():
-    return "SSP" + datetime.now().strftime("%y") + str(random.randint(100000, 999999))
+    return "SSP" + now_ist().strftime("%y") + str(random.randint(100000, 999999))
 
 
 def write_audit(cur, app_id, action, actor, note=""):
     cur.execute("INSERT INTO audit_log (application_id, action, actor, note, at) "
                 "VALUES (%s, %s, %s, %s, %s)",
-                (app_id, action, actor, note, datetime.now()))
+                (app_id, action, actor[:50], (note or "")[:500], now_ist()))
 
 
 # ---------------------------------------------------------------------------
@@ -140,13 +163,16 @@ def validate_application(data, doc_path):
     `cleaned` holds the normalised values ready for create_application().
     """
     errors = []
+    marital = (data.get("marital_status") or "").strip()
     cleaned = {
-        "applicant_name": sanitize(data.get("applicant_name")),
-        "village": (data.get("village") or "").strip(),
+        "applicant_name": re.sub(r"\s+", " ", data.get("applicant_name") or "").strip(),
+        "village": re.sub(r"\s+", " ", data.get("village") or "").strip(),
         "block": (data.get("block") or "").strip(),
-        "gender": data.get("gender") or "",
-        "marital_status": data.get("marital_status") or "",
-        "husband_name": (data.get("husband_name") or "").strip(),
+        "gender": (data.get("gender") or "").strip(),
+        "marital_status": marital,
+        # only a widow's late husband is recorded; anything else typed there is dropped
+        "husband_name": (re.sub(r"\s+", " ", data.get("husband_name") or "").strip()
+                         if marital == "Widowed" else ""),
         "husband_employer": "",  # no longer collected (not a scheme requirement)
         "bank_account": re.sub(r"[\s-]", "", data.get("bank_account") or ""),
         "ifsc": re.sub(r"[\s-]", "", (data.get("ifsc") or "")).upper(),
@@ -154,27 +180,57 @@ def validate_application(data, doc_path):
         "dob": None,
     }
     for label, key in (("full name", "applicant_name"), ("village", "village"),
-                       ("block", "block"), ("bank account", "bank_account")):
+                       ("block", "block"), ("bank account", "bank_account"),
+                       ("IFSC", "ifsc"), ("gender", "gender"),
+                       ("marital status", "marital_status")):
         if not cleaned[key]:
             errors.append("%s is required" % label)
+    name = cleaned["applicant_name"]
+    if name and (len(name) > 100 or re.search(r"\d", name) or not re.search(r"[^\W\d_]", name)):
+        errors.append("full name must be letters only, up to 100 characters")
+    if len(cleaned["village"]) > 100:
+        errors.append("village must be up to 100 characters")
+    if len(cleaned["husband_name"]) > 100:
+        errors.append("late husband's name must be up to 100 characters")
     if cleaned["block"] and cleaned["block"] not in BLOCKS:
         errors.append("block must be one of: " + ", ".join(BLOCKS))
+    if cleaned["gender"] and cleaned["gender"] not in GENDERS:
+        errors.append("gender must be one of: " + ", ".join(GENDERS))
+    if marital and marital not in MARITAL_STATUSES:
+        errors.append("marital status must be one of: " + ", ".join(MARITAL_STATUSES))
     if cleaned["bank_account"] and not re.fullmatch(r"\d{9,18}", cleaned["bank_account"]):
         errors.append("bank account number must be 9 to 18 digits")
     if cleaned["ifsc"] and not re.fullmatch(r"[A-Z]{4}0[A-Z0-9]{6}", cleaned["ifsc"]):
         errors.append("IFSC must be 11 characters, e.g. SBIN0003077")
     dob = parse_dob(data.get("dob"))
+    today = now_ist().date()
     if dob is None:
         errors.append("date of birth must be given as DD/MM/YYYY")
+    elif dob > today:
+        errors.append("date of birth cannot be in the future")
+    elif age_on(dob, today) > MAX_AGE:
+        errors.append("date of birth gives an age above %d; please check the year" % MAX_AGE)
     else:
         cleaned["dob"] = dob
-        if age_on(dob, now_ist().date()) < MIN_AGE:
+        if age_on(dob, today) < MIN_AGE:
             errors.append("applicant must be %d years of age or above" % MIN_AGE)
-    if not cleaned["doc_path"]:
+    if not cleaned["doc_path"] or not os.path.isfile(cleaned["doc_path"]):
         errors.append("age proof document is required")
     if now_ist() > SCHEME_DEADLINE:
         errors.append("the application window has closed")
     return errors, cleaned
+
+
+def eligibility_problems(dob, submitted_at):
+    """Hard scheme rules that must still hold when an application is approved, by an
+    officer or by deemed approval. An application that breaks one never becomes a pension."""
+    if dob is None:
+        return ["no date of birth on record"]
+    age = age_on(dob, submitted_at.date())
+    if age < MIN_AGE:
+        return ["applicant was %d on the date of application; the scheme requires %d"
+                % (age, MIN_AGE)]
+    return []
 
 
 def active_application(cur, mobile):
@@ -185,12 +241,28 @@ def active_application(cur, mobile):
     return cur.fetchone()
 
 
-def create_application(cur, mobile, cleaned):
+class DuplicateApplication(Exception):
+    def __init__(self, existing):
+        super().__init__("active application exists")
+        self.existing = existing  # (id, application_no, status)
+
+
+def create_application(cur, mobile, cleaned, channel="web"):
     """Insert a validated application; ensure the status-portal account exists.
 
-    The caller commits. Returns (id, application_no).
+    The caller commits. Returns (id, application_no). Raises DuplicateApplication if the
+    mobile already holds an active application; the check runs under a per-mobile lock so
+    two channels, or a retried request, cannot both get through.
     """
-    app_no = new_application_no()
+    cur.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", ("apply:" + mobile,))
+    existing = active_application(cur, mobile)
+    if existing:
+        raise DuplicateApplication(existing)
+    for _ in range(5):
+        app_no = new_application_no()
+        cur.execute("SELECT 1 FROM applications WHERE application_no = %s", (app_no,))
+        if not cur.fetchone():
+            break
     cur.execute(
         """INSERT INTO applications
            (application_no, applicant_name, mobile, dob, gender, marital_status,
@@ -201,7 +273,7 @@ def create_application(cur, mobile, cleaned):
         (app_no, cleaned["applicant_name"], mobile, cleaned["dob"], cleaned["gender"],
          cleaned["marital_status"], cleaned["husband_name"], cleaned["husband_employer"],
          cleaned["village"], cleaned["block"], cleaned["bank_account"], cleaned["ifsc"],
-         cleaned["doc_path"], datetime.now()))
+         cleaned["doc_path"], now_ist()))
     new_id = cur.fetchone()[0]
 
     # status portal account; password is DOB as DDMMYYYY per dept. circular
@@ -210,7 +282,8 @@ def create_application(cur, mobile, cleaned):
     if cur.fetchone()[0] == 0:
         cur.execute("INSERT INTO portal_users (mobile, password_hash) VALUES (%s,%s)",
                     (mobile, hash_password(portal_pass)))
-    write_audit(cur, new_id, "SUBMIT", "applicant:%s" % mobile)
+    write_audit(cur, new_id, "SUBMIT", "applicant:%s" % mobile,
+                "" if channel == "web" else "via %s" % channel)
     return new_id, app_no
 
 
@@ -262,14 +335,14 @@ def apply():
         if not captcha_ok:
             flash("Security check answer is incorrect. Please try again.")
             return render_template("apply.html", captcha_q=make_captcha())
-        if len(mobile) != 10 or not mobile.isdigit():
+        if not valid_mobile(mobile):
             flash("Please enter a valid 10-digit mobile number.")
             return render_template("apply.html", captcha_q=make_captcha())
         code = str(random.randint(100000, 999999))
         conn = get_db()
         cur = conn.cursor()
         cur.execute("INSERT INTO otps (mobile, code, created_at) VALUES (%s, %s, %s)",
-                    (mobile, code, datetime.now()))
+                    (mobile, code, now_ist()))
         conn.commit()
         cur.close(); conn.close()
         send_sms(mobile, "Your Sewa Setu OTP is %s. Valid for 5 minutes." % code)
@@ -294,12 +367,14 @@ def verify():
         code = request.form.get("otp", "").strip()
         conn = get_db()
         cur = conn.cursor()
-        cur.execute("SELECT code, created_at FROM otps WHERE mobile = %s "
-                    "ORDER BY id DESC LIMIT 1", (mobile,))
-        row = cur.fetchone()
+        row = check_otp(cur, mobile, code)
+        conn.commit()
         cur.close(); conn.close()
-        if row and row[0] == code:
-            age = (datetime.now() - row[1]).total_seconds()
+        if row == "locked":
+            flash("Too many wrong OTPs. Please request a new OTP.")
+            return redirect(url_for("apply"))
+        if row:
+            age = (now_ist() - row[1]).total_seconds()
             if age > OTP_VALIDITY_SECONDS:
                 app.logger.warning("otp expired mobile=%s age=%ds" % (mobile, int(age)))
                 flash("OTP expired. Please request a new OTP.")
@@ -308,6 +383,26 @@ def verify():
             return redirect(url_for("form_step", step=1))
         flash("Invalid OTP.")
     return render_template("verify.html", mobile=mobile)
+
+
+OTP_MAX_ATTEMPTS = 5
+
+
+def check_otp(cur, mobile, code):
+    """The latest OTP for `mobile` if `code` matches it, "locked" after too many wrong
+    tries (a 6-digit code must not be guessable), else None. The caller commits."""
+    cur.execute("SELECT id, code, created_at, attempts FROM otps WHERE mobile = %s "
+                "ORDER BY id DESC LIMIT 1 FOR UPDATE", (mobile,))
+    row = cur.fetchone()
+    if not row:
+        return None
+    if (row[3] or 0) >= OTP_MAX_ATTEMPTS:
+        return "locked"
+    if row[1] == code:
+        cur.execute("UPDATE otps SET attempts = %s WHERE id = %s", (OTP_MAX_ATTEMPTS, row[0]))
+        return (row[1], row[2])
+    cur.execute("UPDATE otps SET attempts = coalesce(attempts, 0) + 1 WHERE id = %s", (row[0],))
+    return None
 
 
 @app.route("/form/<int:step>", methods=["GET", "POST"])
@@ -380,15 +475,15 @@ def handle_submission():
 
     conn = get_db()
     cur = conn.cursor()
-    existing = active_application(cur, mobile)
-    if existing:
+    try:
+        new_id, app_no = create_application(cur, mobile, cleaned)
+    except DuplicateApplication as dup:
+        conn.rollback()
         cur.close(); conn.close()
         flash("Application %s (%s) already exists for this mobile number. A pending "
               "application can be withdrawn from the status portal if you need to "
-              "apply afresh." % (existing[1], existing[2]))
+              "apply afresh." % (dup.existing[1], dup.existing[2]))
         return redirect(url_for("index"))
-
-    new_id, app_no = create_application(cur, mobile, cleaned)
     conn.commit()
     cur.close(); conn.close()
 
@@ -480,10 +575,21 @@ def view_application(app_id):
                 "FROM applications WHERE id = %s AND mobile = %s",
                 (app_id, session.get("portal_mobile")))
     row = cur.fetchone()
+    reason = None
+    others = []
+    if row:
+        if row[8] == "REJECTED":
+            cur.execute("SELECT note FROM audit_log WHERE application_id = %s AND action = 'REJECTED' "
+                        "ORDER BY at DESC LIMIT 1", (app_id,))
+            r = cur.fetchone()
+            reason = re.sub(r"\s*\[via [^\]]*\]$", "", (r[0] if r else "") or "") or None
+        cur.execute("SELECT id, application_no, status FROM applications WHERE mobile = %s AND id <> %s "
+                    "ORDER BY submitted_at DESC", (session.get("portal_mobile"), app_id))
+        others = cur.fetchall()
     cur.close(); conn.close()
     if not row:
         abort(404)
-    return render_template("application.html", a=row, app_id=app_id)
+    return render_template("application.html", a=row, app_id=app_id, reason=reason, others=others)
 
 
 @app.route("/application/<int:app_id>/withdraw", methods=["POST"])
@@ -498,7 +604,7 @@ def withdraw_application(app_id):
     cur.execute("UPDATE applications SET status = 'WITHDRAWN', decided_at = %s, "
                 "decided_by = 'APPLICANT' WHERE id = %s AND mobile = %s "
                 "AND status = 'PENDING' RETURNING application_no",
-                (datetime.now(), app_id, mobile))
+                (now_ist(), app_id, mobile))
     row = cur.fetchone()
     if row:
         write_audit(cur, app_id, "WITHDRAW", "applicant:%s" % mobile)
@@ -584,7 +690,7 @@ def admin_dashboard():
     cur.execute("SELECT status, count(*) FROM applications GROUP BY status")
     by_status = cur.fetchall()
     cur.execute("SELECT count(*) FROM applications WHERE status = 'PENDING' "
-                "AND submitted_at < %s", (datetime.now() - timedelta(days=SLA_DAYS),))
+                "AND submitted_at < %s", (now_ist() - timedelta(days=SLA_DAYS),))
     overdue = cur.fetchone()[0]
     cur.execute("SELECT block, count(*) FROM applications WHERE status = 'PENDING' "
                 "GROUP BY block ORDER BY count(*) DESC")
@@ -600,7 +706,10 @@ def admin_list():
         return redirect(url_for("admin_login"))
     status = request.args.get("status", "PENDING")
     mobile = request.args.get("mobile", "").strip()
-    page = int(request.args.get("page", 1))
+    try:
+        page = max(1, int(request.args.get("page", 1)))
+    except ValueError:
+        page = 1
     conn = get_db()
     cur = conn.cursor()
     if mobile:
@@ -635,27 +744,75 @@ def admin_view(app_id):
     cur.execute("SELECT at, action, actor, note FROM audit_log "
                 "WHERE application_id = %s ORDER BY at ASC", (app_id,))
     audit = cur.fetchall()
+    import agent_api
+    cur.execute("SELECT " + agent_api.APP_COLS + " FROM applications WHERE id = %s", (app_id,))
+    checks = agent_api._checks(cur, cur.fetchone())
     cur.close(); conn.close()
-    return render_template("admin_view.html", a=row, app_id=app_id, audit=audit)
+    has_doc = bool(row[10]) and os.path.isfile(row[10])
+    return render_template("admin_view.html", a=row, app_id=app_id, audit=audit, checks=checks,
+                           has_doc=has_doc)
+
+
+@app.route("/admin/document/<int:app_id>")
+def admin_document(app_id):
+    if not session.get("admin"):
+        return redirect(url_for("admin_login"))
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT doc_path FROM applications WHERE id = %s", (app_id,))
+    row = cur.fetchone()
+    cur.close(); conn.close()
+    if not row or not row[0] or not os.path.isfile(row[0]):
+        abort(404)
+    ext = row[0].rsplit(".", 1)[-1].lower()
+    mime = {"pdf": "application/pdf", "png": "image/png"}.get(ext, "image/jpeg")
+    return send_file(row[0], mimetype=mime)
+
+
+def decide_application(cur, app_id, new_status, officer, note, channel="portal"):
+    """Approve or reject a PENDING application. The one place a decision is made, from the
+    admin pages or an officer's assistant. Returns (ok, message, application_no).
+
+    A rejection must carry a reason, which is shown to the applicant. An approval is refused
+    when a hard scheme rule fails: an officer cannot grant what the counter would refuse."""
+    note = (note or "").strip()
+    if new_status not in ("APPROVED", "REJECTED"):
+        return False, "decision must be approve or reject", None
+    if new_status == "REJECTED" and not note:
+        return False, "a reason is required to reject an application", None
+    cur.execute("SELECT application_no, dob, submitted_at, status FROM applications "
+                "WHERE id = %s FOR UPDATE", (app_id,))
+    row = cur.fetchone()
+    if not row:
+        return False, "no such application", None
+    app_no, dob, submitted_at, status = row
+    if status != "PENDING":
+        return False, "only a pending application can be decided (this one is %s)" % status, app_no
+    if new_status == "APPROVED":
+        problems = eligibility_problems(dob, submitted_at)
+        if problems:
+            return False, "cannot approve: " + "; ".join(problems), app_no
+    cur.execute("UPDATE applications SET status = %s, decided_at = %s, decided_by = %s "
+                "WHERE id = %s AND status = 'PENDING'",
+                (new_status, now_ist(), officer[:50], app_id))
+    write_audit(cur, app_id, new_status, "officer:%s" % officer,
+                note if channel == "portal" else ("%s [via %s]" % (note, channel)))
+    return True, "Application %s %s." % (app_no, new_status.lower()), app_no
 
 
 def _admin_decide(app_id, new_status, note):
-    """Approve/reject a PENDING application, recording who decided and when."""
+    """Approve/reject from the admin pages, recording who decided and when."""
     if not session.get("admin"):
         abort(403)
     actor = session.get("admin_user", ADMIN_USERNAME)
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("UPDATE applications SET status = %s, decided_at = %s, decided_by = %s "
-                "WHERE id = %s AND status = 'PENDING' RETURNING application_no",
-                (new_status, datetime.now(), actor, app_id))
-    row = cur.fetchone()
-    if row:
-        write_audit(cur, app_id, new_status, "admin:%s" % actor, note)
+    ok, message, _ = decide_application(cur, app_id, new_status, actor, note)
+    if ok:
         conn.commit()
-        flash("Application %s %s." % (row[0], new_status.lower()))
     else:
-        flash("Only a pending application can be decided.")
+        conn.rollback()
+    flash(message)
     cur.close(); conn.close()
     return redirect(url_for("admin_view", app_id=app_id))
 
@@ -672,6 +829,17 @@ def admin_reject(app_id):
 
 from oauth import oauth as _oauth_blueprint   # noqa: E402  (needs the definitions above)
 app.register_blueprint(_oauth_blueprint)
+from agent_api import agent_api as _agent_blueprint   # noqa: E402
+app.register_blueprint(_agent_blueprint)
+from evals_page import evals_page as _evals_blueprint   # noqa: E402
+app.register_blueprint(_evals_blueprint)
+
+
+@app.route("/assistant")
+def assistant_help():
+    import agent_api
+    return render_template("assistant.html", citizen_url=agent_api.CITIZEN_MCP_URL,
+                           officer_url=agent_api.OFFICER_MCP_URL, blocks=AGENT_BLOCKS)
 
 
 if __name__ == "__main__":
