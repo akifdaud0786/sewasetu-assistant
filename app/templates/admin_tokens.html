@@ -20,9 +20,12 @@ flow instead (see README).</p>
 </form>
 <h3>Issued program tokens</h3>
 <table class="tbl" style="max-width:860px">
-<tr><th>Label</th><th>Subject</th><th>Audience</th><th>Issued by</th><th>Created</th><th>Expires</th></tr>
-{% for l, s, a, b, c, e in rows %}
-<tr><td>{{ l }}</td><td>{{ s }}</td><td>{{ a }}</td><td>{{ b }}</td><td>{{ c }}</td><td>{{ e }}</td></tr>
+<tr><th>Label</th><th>Subject</th><th>Audience</th><th>Issued by</th><th>Created</th><th>Expires</th><th></th></tr>
+{% for l, s, a, b, c, e, jti, rev in rows %}
+<tr><td>{{ l }}</td><td>{{ s }}</td><td>{{ a }}</td><td>{{ b }}</td><td>{{ c }}</td><td>{{ e }}</td>
+<td>{% if rev %}revoked {{ rev }}{% else %}<form method="post" style="display:inline">
+<input type="hidden" name="revoke_jti" value="{{ jti }}">
+<button class="btn" style="background:#a33;padding:4px 10px" type="submit">Revoke</button></form>{% endif %}</td></tr>
 {% endfor %}
 </table>
 <h3>Your current officer sign-ins (through applications)</h3>

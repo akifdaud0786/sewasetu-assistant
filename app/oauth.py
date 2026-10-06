@@ -103,7 +103,7 @@ def public_jwks():
 
 
 def mint_access_token(subject, role, scope, audience, client_id, ttl=None, kind="access",
-                      session_ends=None):
+                      session_ends=None, session_id=None):
     kid, priv = signing_key()
     now = int(time.time())
     if ttl is None:
@@ -118,6 +118,8 @@ def mint_access_token(subject, role, scope, audience, client_id, ttl=None, kind=
     }
     if session_ends:
         claims["session_ends"] = int(session_ends.timestamp())
+    if session_id:
+        claims["sid"] = session_id
     return jwt.encode(claims, priv, algorithm="RS256", headers={"kid": kid}), claims
 
 
@@ -130,6 +132,27 @@ def verify_token(token, audience):
                           audience=audience, issuer=ISSUER)
     except jwt.PyJWTError:
         return None
+
+
+def token_is_live(claims):
+    """A signature-valid token is honoured only while the sign-in behind it stands: the
+    person (or an administrator) can end a sign-in, and that must take effect at once on a
+    shared phone or kiosk, not when the access token happens to expire."""
+    conn = portal.get_db()
+    cur = conn.cursor()
+    try:
+        if claims.get("kind") == "program":
+            cur.execute("SELECT 1 FROM oauth_program_tokens WHERE jti = %s AND revoked_at IS NULL "
+                        "AND expires_at > %s", (claims.get("jti"), datetime.now()))
+            return cur.fetchone() is not None
+        sid = claims.get("sid")
+        if not sid:
+            return False
+        cur.execute("SELECT 1 FROM oauth_refresh_tokens WHERE session_id = %s AND revoked_at IS NULL "
+                    "AND expires_at > %s LIMIT 1", (sid, datetime.now()))
+        return cur.fetchone() is not None
+    finally:
+        cur.close(); conn.close()
 
 
 # ---------------------------------------------------------------------------
@@ -361,25 +384,28 @@ def login():
                 code = request.form.get("otp", "").strip()
                 conn = portal.get_db()
                 cur = conn.cursor()
-                cur.execute("SELECT code, created_at FROM otps WHERE mobile = %s ORDER BY id DESC LIMIT 1",
-                            (mobile,))
-                row = cur.fetchone()
+                row = portal.check_otp(cur, mobile, code)
+                conn.commit()
                 cur.close(); conn.close()
-                if row and secrets.compare_digest(row[0], code) and \
-                        (datetime.now() - row[1]).total_seconds() <= portal.OTP_VALIDITY_SECONDS:
+                if row == "locked":
+                    flash("Too many wrong OTPs. Enter your mobile number again for a new OTP.")
+                    _update_request(rid, pending_mobile=None)
+                    req["pending_mobile"] = None
+                elif row and (portal.now_ist() - row[1]).total_seconds() <= portal.OTP_VALIDITY_SECONDS:
                     _update_request(rid, subject="citizen:" + mobile)
                     return redirect(url_for("oauth.consent", rid=rid))
-                flash("Invalid or expired OTP.")
+                else:
+                    flash("Invalid or expired OTP.")
             else:
                 mobile = request.form.get("mobile", "").strip()
-                if len(mobile) != 10 or not mobile.isdigit():
+                if not portal.valid_mobile(mobile):
                     flash("Please enter a valid 10-digit mobile number.")
                 else:
                     code = "%06d" % secrets.randbelow(1000000)
                     conn = portal.get_db()
                     cur = conn.cursor()
                     cur.execute("INSERT INTO otps (mobile, code, created_at) VALUES (%s, %s, %s)",
-                                (mobile, code, datetime.now()))
+                                (mobile, code, portal.now_ist()))
                     conn.commit()
                     cur.close(); conn.close()
                     portal.send_sms(mobile, "Your Sewa Setu OTP is %s. Valid for 5 minutes." % code)
@@ -445,18 +471,21 @@ def _check_client_auth(client, form):
     return True
 
 
-def _issue(subject, role, scope, audience, client_id, session_ends=None, client_name=""):
+def _issue(subject, role, scope, audience, client_id, session_ends=None, client_name="",
+           session_id=None):
     if session_ends is None:
         session_ends = datetime.now() + timedelta(seconds=SESSION[role]["session"])
+    session_id = session_id or secrets.token_hex(16)
     access, claims = mint_access_token(subject, role, scope, audience, client_id,
-                                       session_ends=session_ends)
+                                       session_ends=session_ends, session_id=session_id)
     refresh = secrets.token_urlsafe(32)
     conn = portal.get_db()
     cur = conn.cursor()
     cur.execute("INSERT INTO oauth_refresh_tokens (token_hash, client_id, client_name, subject, role, "
-                "scope, resource, created_at, expires_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                "scope, resource, created_at, expires_at, session_id) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
                 (hashlib.sha256(refresh.encode()).hexdigest(), client_id, client_name, subject, role,
-                 scope, audience, datetime.now(), session_ends))
+                 scope, audience, datetime.now(), session_ends, session_id))
     conn.commit()
     cur.close(); conn.close()
     return jsonify({"access_token": access, "token_type": "Bearer",
@@ -508,7 +537,7 @@ def token():
         cur = conn.cursor()
         cur.execute("UPDATE oauth_refresh_tokens SET revoked_at = %s WHERE token_hash = %s AND "
                     "revoked_at IS NULL AND expires_at > %s RETURNING client_id, subject, role, "
-                    "scope, resource, expires_at, client_name",
+                    "scope, resource, expires_at, client_name, session_id",
                     (datetime.now(), hashlib.sha256(rt.encode()).hexdigest(), datetime.now()))
         row = cur.fetchone()
         conn.commit()
@@ -516,12 +545,12 @@ def token():
         if not row or row[0] != client_id:
             return _token_error("invalid_grant", "refresh token is invalid, expired or revoked; "
                                                  "the person must sign in again")
-        _, subject, role, scope, resource, session_ends, client_name = row
+        _, subject, role, scope, resource, session_ends, client_name, session_id = row
         if f.get("resource") and f.get("resource") != resource:
             return _token_error("invalid_target", "resource differs from the original grant")
         # the session window is absolute: rotation never extends it
         return _issue(subject, role, scope, resource, client_id, session_ends=session_ends,
-                      client_name=client_name)
+                      client_name=client_name, session_id=session_id)
 
     return _token_error("unsupported_grant_type", "use authorization_code or refresh_token")
 
@@ -545,8 +574,10 @@ def _revoke_grants(subject, token_hash=None):
     conn = portal.get_db()
     cur = conn.cursor()
     if token_hash:
-        cur.execute("UPDATE oauth_refresh_tokens SET revoked_at = %s WHERE subject = %s AND token_hash = %s "
-                    "AND revoked_at IS NULL", (datetime.now(), subject, token_hash))
+        cur.execute("UPDATE oauth_refresh_tokens SET revoked_at = %s WHERE subject = %s AND revoked_at IS NULL "
+                    "AND (token_hash = %s OR session_id = (SELECT session_id FROM oauth_refresh_tokens "
+                    "WHERE token_hash = %s AND session_id IS NOT NULL))",
+                    (datetime.now(), subject, token_hash, token_hash))
     else:
         cur.execute("UPDATE oauth_refresh_tokens SET revoked_at = %s WHERE subject = %s AND revoked_at IS NULL",
                     (datetime.now(), subject))
@@ -591,7 +622,15 @@ def admin_tokens():
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
     issued = None
-    if request.method == "POST" and not request.form.get("revoke_subject"):
+    if request.method == "POST" and request.form.get("revoke_jti"):
+        conn = portal.get_db()
+        cur = conn.cursor()
+        cur.execute("UPDATE oauth_program_tokens SET revoked_at = %s WHERE jti = %s AND revoked_at IS NULL",
+                    (datetime.now(), request.form["revoke_jti"]))
+        flash("%d program token(s) revoked." % cur.rowcount)
+        conn.commit()
+        cur.close(); conn.close()
+    elif request.method == "POST" and not request.form.get("revoke_subject"):
         label = (request.form.get("label") or "program").strip()[:100]
         audience = (request.form.get("audience") or "").strip() or ISSUER
         days = max(1, min(int(request.form.get("days") or 90), 365))
@@ -611,7 +650,7 @@ def admin_tokens():
         flash("%d officer sign-in(s) ended." % n)
     conn = portal.get_db()
     cur = conn.cursor()
-    cur.execute("SELECT label, subject, audience, issued_by, created_at, expires_at FROM "
+    cur.execute("SELECT label, subject, audience, issued_by, created_at, expires_at, jti, revoked_at FROM "
                 "oauth_program_tokens ORDER BY id DESC LIMIT 20")
     rows = cur.fetchall()
     cur.execute("SELECT client_name, kind, created_at FROM oauth_clients ORDER BY id DESC LIMIT 20")
