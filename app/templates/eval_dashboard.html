@@ -1,1 +1,65 @@
-{% extends "base.html" %}{% block content %}<h2>Evals</h2><p>No runs yet.</p>{% endblock %}
+{% extends "eval_layout.html" %}
+{% block content %}
+{% set runs = data.runs %}
+{% set latest = runs[0] if runs else None %}
+
+<div class="card">
+  <b>How these evals run.</b>
+  <ol class="muted" style="margin:8px 0 0;padding-left:20px">
+    <li>The harness signs in as each person through the portal's own OAuth flow (OTP read from the simulated SMS gateway), and sets up any earlier history, such as an existing application.</li>
+    <li><b>The assistant</b> is Claude Code (<code>{{ latest.assistant_model if latest else 'claude-haiku-4-5' }}</code>, a small model with a turn limit), connected only to the MCP endpoint. <b>The citizen</b> is a second model playing the persona card below. When the assistant gives out an upload link, the harness uploads a photo of the age proof, as the grandson would from his phone.</li>
+    <li>Afterwards the harness <b>reads the portal</b> as that citizen and as an officer, and checks what must now be true there. A good-sounding chat that leaves the wrong record still fails.</li>
+  </ol>
+</div>
+
+{% if latest %}
+<h2>Runs</h2>
+<div class="card scroll">
+<table>
+<tr><th>Run</th><th>When</th><th>Assistant model</th><th>Passed</th><th></th></tr>
+{% for r in runs %}
+{% set n = r.results|length %}{% set ok = r.results|selectattr('passed')|list|length %}
+<tr><td><b>{{ r.label or r.id }}</b></td><td class="muted">{{ r.at }}</td><td><code>{{ r.assistant_model }}</code></td>
+<td>{{ ok }} / {{ n }}</td><td style="width:30%"><div class="bar"><span style="width:{{ (100*ok/n) if n else 0 }}%"></span></div></td></tr>
+{% endfor %}
+</table>
+</div>
+{% endif %}
+
+{% if data.findings %}
+<h2>What the evals found, and what changed</h2>
+<div class="card scroll">
+<table>
+<tr><th>Persona</th><th>What happened</th><th>What I changed</th><th>Result</th></tr>
+{% for f in data.findings %}
+<tr><td>{{ f.persona }}</td><td>{{ f.found }}</td><td>{{ f.changed }}</td><td>{{ f.result }}</td></tr>
+{% endfor %}
+</table>
+</div>
+{% endif %}
+
+<h2>The people{% if latest %} &mdash; latest run: {{ latest.label or latest.id }}{% endif %}</h2>
+<div class="grid">
+{% for p in data.personas %}
+{% set res = (latest.results|selectattr('persona_id','equalto',p.id)|list|first) if latest else None %}
+<div class="card">
+  <div style="display:flex;justify-content:space-between;gap:8px;align-items:start">
+    <div><b>{{ p.name }}</b>{% if p.age %}, {{ p.age }}{% endif %}<br>
+    <span class="muted">{% if p.kind == 'officer' %}Block officer{% else %}{{ p.village }}, {{ p.block }} block{% endif %}</span></div>
+    {% if res %}<span class="pill {{ 'pass' if res.passed else 'fail' }}">{{ 'PASS' if res.passed else 'FAIL' }}</span>{% endif %}
+  </div>
+  {% if p.who_types %}<p class="muted" style="margin:8px 0 0"><b>Typing:</b> {{ p.who_types }}. <b>Speaks:</b> {{ p.speaks }}</p>{% endif %}
+  <p style="margin:8px 0 0;font-size:14px"><b>Opening line:</b> &ldquo;{{ p.opening }}&rdquo;</p>
+  <p class="muted" style="margin:8px 0 0"><b>Why this person:</b> {{ p.why }}</p>
+  <p class="muted" style="margin:8px 0 0"><b>Must be true in the portal afterwards:</b></p>
+  <ul class="muted" style="margin:2px 0 0;padding-left:18px">
+  {% for e in p.expect %}<li>{{ e|expectation }}</li>{% endfor %}
+  </ul>
+  {% if res %}<p style="margin:10px 0 0;font-size:14px"><a href="/eval-dashboard/{{ latest.id }}/{{ p.id }}">Conversation &amp; checks &rarr;</a>
+  <span class="muted">{{ res.turns }} turns, {{ res.tool_calls }} tool calls</span></p>{% endif %}
+</div>
+{% endfor %}
+</div>
+
+<p class="muted" style="margin-top:24px">Raw data: <a href="/eval-dashboard.json">/eval-dashboard.json</a>. Mobile numbers are random and masked. All documents are synthetic.</p>
+{% endblock %}

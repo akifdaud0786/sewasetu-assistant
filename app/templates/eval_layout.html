@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Sewa Setu Evals{% endblock %}</title>
+<style>
+:root{--ink:#1d2433;--muted:#5d6678;--line:#dde2ea;--bg:#f4f6f9;--card:#fff;--navy:#0b3d6e;--saffron:#f7931e;
+--pass:#1b7e3c;--pass-bg:#e6f4ea;--fail:#b3261e;--fail-bg:#fdecea;--tool:#6b4fa3;--tool-bg:#f2eefa}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
+header{background:var(--navy);color:#fff;padding:18px 16px}
+header .in{max-width:1080px;margin:0 auto}
+header h1{margin:0;font-size:21px}
+header p{margin:4px 0 0;color:#cfe0f3;font-size:14px}
+.band{height:4px;background:var(--saffron)}
+main{max-width:1080px;margin:0 auto;padding:20px 16px 48px}
+h2{font-size:18px;margin:28px 0 10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px;margin-bottom:12px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+.stat{font-size:34px;font-weight:700}
+.muted{color:var(--muted);font-size:14px}
+.pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600}
+.pass{background:var(--pass-bg);color:var(--pass)} .fail{background:var(--fail-bg);color:var(--fail)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600}
+a{color:var(--navy)}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;min-width:80px}
+.bar span{display:block;height:100%;background:var(--pass)}
+code{background:#eef1f5;padding:1px 5px;border-radius:4px;font-size:13px}
+.scroll{overflow-x:auto}
+</style>
+</head>
+<body>
+<header><div class="in"><h1>{% block heading %}Sewa Setu &mdash; assistant evals{% endblock %}</h1>
+<p>Invented citizens and officers, played against the live MCP endpoints through a real client. Pass or fail is read from the portal afterwards.</p></div></header>
+<div class="band"></div>
+<main>{% block content %}{% endblock %}</main>
+</body>
+</html>

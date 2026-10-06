@@ -21,6 +21,30 @@ def _load():
         return {"runs": [], "personas": []}
 
 
+def describe(e):
+    """One expectation from personas.yaml, in words."""
+    c = e.get("check")
+    return {
+        "active_application": lambda: "one active application, status %s" % e.get("status"),
+        "no_application": lambda: "no application created",
+        "active_count": lambda: "exactly %s active application(s) for the mobile" % e.get("equals"),
+        "status_count": lambda: "%s application(s) %s" % (e.get("equals"), e.get("status")),
+        "no_status": lambda: "nothing %s" % e.get("status"),
+        "field": lambda: "%s is %s" % (e.get("field", "").replace("_", " "), e.get("equals")),
+        "audit_channel": lambda: "audit trail says it came through an AI assistant",
+        "age_proof_on_file": lambda: "age proof stored with the application",
+        "transcript_mentions": lambda: "assistant mentions %s" % " / ".join(e.get("any_of", [])),
+        "transcript_lacks_neighbour": lambda: "neighbour's application never revealed",
+        "target_status": lambda: "the application is %s" % e.get("status"),
+        "target_audit": lambda: "%s recorded against the officer, with the reason" % e.get("action"),
+    }.get(c, lambda: str(e))()
+
+
+@evals_page.app_template_filter("expectation")
+def _expectation_filter(e):
+    return describe(e)
+
+
 @evals_page.get("/eval-dashboard")
 def dashboard():
     return render_template("eval_dashboard.html", data=_load())

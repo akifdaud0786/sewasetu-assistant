@@ -1,1 +1,39 @@
-{% extends "base.html" %}{% block content %}<h2>Evals</h2><p>No runs yet.</p>{% endblock %}
+{% extends "eval_layout.html" %}
+{% block title %}{{ persona.name }} - Sewa Setu Evals{% endblock %}
+{% block content %}
+<p><a href="/eval-dashboard">&larr; All personas</a></p>
+<div class="card">
+  <div style="display:flex;justify-content:space-between;gap:8px">
+    <div><b style="font-size:18px">{{ persona.name }}</b>{% if persona.age %}, {{ persona.age }}{% endif %}
+    <div class="muted">Run: {{ run.label or run.id }} &middot; {{ run.at }} &middot; assistant <code>{{ run.assistant_model }}</code>{% if res.target %} &middot; target {{ res.target }}{% endif %}</div></div>
+    <span class="pill {{ 'pass' if res.passed else 'fail' }}" style="align-self:start">{{ 'PASS' if res.passed else 'FAIL' }}</span>
+  </div>
+  {% if persona.why %}<p class="muted" style="margin:8px 0 0">{{ persona.why }}</p>{% endif %}
+</div>
+
+<h2>What was checked in the portal</h2>
+<div class="card scroll"><table>
+<tr><th></th><th>Check</th><th>Portal state</th></tr>
+{% for c in res.checks %}
+<tr><td><span class="pill {{ 'pass' if c.passed else 'fail' }}">{{ 'PASS' if c.passed else 'FAIL' }}</span></td><td>{{ c.check }}</td><td class="muted">{{ c.detail }}</td></tr>
+{% endfor %}
+</table></div>
+
+<h2>Conversation</h2>
+<style>
+.msg{border-radius:8px;padding:10px 12px;margin:8px 0;white-space:pre-wrap;font-size:14px;max-width:88%;word-wrap:break-word}
+.user{background:#e8f0fb;margin-left:auto}
+.assistant{background:#fff;border:1px solid var(--line)}
+.tool{background:var(--tool-bg);color:var(--tool);font-family:ui-monospace,Consolas,monospace;font-size:12px;max-width:100%}
+.harness{background:#fff7e6;color:#8a5a00;font-size:13px;font-style:italic;max-width:100%}
+.who{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:2px}
+details summary{cursor:pointer}
+</style>
+{% for t in res.transcript %}
+  {% if t.role == 'user' %}<div class="msg user"><div class="who">{{ 'Officer' if res.kind == 'officer' else 'Citizen' }}</div>{{ t.text }}</div>
+  {% elif t.role == 'assistant' %}<div class="msg assistant"><div class="who">Assistant</div>{{ t.text }}</div>
+  {% elif t.role == 'tool_call' %}<div class="msg tool">&rarr; {{ t.tool }}({{ t.args|tojson }})</div>
+  {% elif t.role == 'tool_result' %}<div class="msg tool"><details><summary>&larr; result{% if t.error %} (error){% endif %}</summary>{{ t.text }}</details></div>
+  {% else %}<div class="msg harness">{{ t.text }}</div>{% endif %}
+{% endfor %}
+{% endblock %}
