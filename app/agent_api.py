@@ -529,14 +529,15 @@ def api_my_applications():
     conn = portal.get_db()
     cur = conn.cursor()
     cur.execute("SELECT id, application_no, applicant_name, dob, village, block, bank_account, ifsc, "
-                "status, submitted_at, decided_at FROM applications WHERE mobile = %s "
-                "ORDER BY submitted_at DESC", (g.who,))
+                "status, submitted_at, decided_at, gender, marital_status FROM applications "
+                "WHERE mobile = %s ORDER BY submitted_at DESC", (g.who,))
     rows = cur.fetchall()
     out = []
-    for (app_id, no, name, dob, village, block, acct, ifsc, status, sub, dec) in rows:
+    for (app_id, no, name, dob, village, block, acct, ifsc, status, sub, dec, gender, marital) in rows:
         item = {
             "application_no": no, "applicant_name": name,
             "date_of_birth": dob.strftime("%d/%m/%Y") if dob else None,
+            "gender": gender, "marital_status": marital,
             "village": village, "block": block,
             "bank_account": mask_account(acct), "ifsc": ifsc,
             "status": status, "what_it_means": STATUS_TEXT.get(status, status),
