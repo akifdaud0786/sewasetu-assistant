@@ -81,3 +81,39 @@ portal, checks `aud` is its own canonical URL, and reads `scope`, `role` and `su
 
 Long-lived **program tokens** for unattended use (role officer) are issued by an
 administrator at `/admin/tokens`.
+
+## Agent-ready: MCP servers for citizens and officers
+
+See `DESIGN.md` for the reasoning. In short:
+
+| | URL | Sign-in |
+|---|---|---|
+| Citizen MCP | `<PUBLIC_BASE_URL>/mcp/citizen` | mobile + OTP on the portal (scope `citizen`) |
+| Officer MCP | `<PUBLIC_BASE_URL>/mcp/officer` | departmental login on the portal (scope `officer`) |
+| Help page | `/assistant` | |
+| Eval dashboard | `/eval-dashboard` | |
+
+- `mcp_server/` streamable-HTTP MCP servers (official Python SDK). No rules, no data: each tool forwards
+  the person's token to the portal's agent API (`app/agent_api.py`), which uses the same validation and
+  decision functions as the website. `/api/agent/*` is not exposed publicly (Caddy returns 404).
+- Assistant applications are piloted in `AGENT_BLOCKS` (default Sonari, Rajapara, Dhemaji Pathar, Borgaon).
+- `app/migrate.py` applies schema changes in place at start-up.
+
+### Deploying on a VM
+
+```
+sh deploy/setup_vm.sh            # once: Docker + swap
+sh deploy/up.sh <public-ip>      # writes .env (host on sslip.io, random secrets), builds, starts; Caddy gets HTTPS
+```
+
+### Evals
+
+```
+cd evals
+python smoke_test.py <base> <base>/mcp/citizen <base>/mcp/officer <admin-password>
+python run_evals.py --base <base> --admin-password <admin-password> --label "my run"
+```
+
+`personas.yaml` holds the invented citizens and officers and what must be true in the portal after each
+conversation. The runner drives Claude Code (`claude -p`, Haiku) against the live MCP endpoint, plays the
+person with a second model, and writes `app/evals_data/results.json`, which `/eval-dashboard` renders.
