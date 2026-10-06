@@ -1,0 +1,17 @@
+# One public origin. Caddy obtains and renews the HTTPS certificate by itself.
+{$SITE_HOST} {
+	encode gzip
+	@mcp path /mcp/* /.well-known/oauth-protected-resource/mcp/*
+	handle @mcp {
+		reverse_proxy mcp:8100 {
+			flush_interval -1
+		}
+	}
+	# the portal-to-MCP API is for the MCP servers on the internal network only
+	handle /api/agent/* {
+		respond "Not found" 404
+	}
+	handle {
+		reverse_proxy app:8000
+	}
+}

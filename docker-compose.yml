@@ -1,6 +1,7 @@
 services:
   db:
     image: postgres:15
+    restart: unless-stopped
     environment:
       POSTGRES_DB: sewasetu
       POSTGRES_USER: sewasetu
@@ -12,9 +13,13 @@ services:
 
   app:
     build: ./app
-    ports:
-      - "8000:8000"
+    restart: unless-stopped
+    command: ["sh", "-c", "python migrate.py && exec gunicorn --bind 0.0.0.0:8000 --workers 4 --threads 4 --timeout 60 app:app"]
+    expose:
+      - "8000"
     environment:
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env}
+      AGENT_BLOCKS: ${AGENT_BLOCKS:-Sonari,Rajapara,Dhemaji Pathar,Borgaon}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change-me-before-deploying}
       # the address at which people reach this portal; stamped into sign-in tokens and
@@ -29,9 +34,10 @@ services:
 
   scheduler:
     build: ./app
+    restart: unless-stopped
     # Run the deemed-approval job once at startup (so a freshly restored
     # database is brought up to date), then hand over to cron for the nightly run.
-    command: ["sh", "-c", "until python /app/scripts/deemed_approval.py; do sleep 5; done; exec cron -f"]
+    command: ["sh", "-c", "until python /app/migrate.py && python /app/scripts/deemed_approval.py; do sleep 5; done; exec cron -f"]
     depends_on:
       - db
     volumes:
@@ -39,12 +45,39 @@ services:
 
   smsgw:
     build: ./smsgw
+    restart: unless-stopped
     # internal only — reached by the app over the docker network and exposed to
     # users via the app at /__gateway/ (so no second host port is needed)
     expose:
       - "8025"
 
+  mcp:
+    build: ./mcp_server
+    restart: unless-stopped
+    environment:
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8000}
+      PORTAL_INTERNAL_URL: http://app:8000
+      ALLOWED_HOSTS: ${SITE_HOST:-}
+    depends_on:
+      - app
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_HOST: ${SITE_HOST:-localhost}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on:
+      - app
+      - mcp
+
 volumes:
+  caddy_data:
   pgdata:
   uploads:
   applogs:
