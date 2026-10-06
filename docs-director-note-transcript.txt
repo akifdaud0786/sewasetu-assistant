@@ -1,0 +1,44 @@
+Welcome. You are the new Bharat Digital Fellow assigned to my department.
+Sit. Have some tea. Let me tell you why you are here.
+The old age pension is Rs.250 a month for any resident of Gurwanchal aged 60 or above.
+For a lot of people, it is a lifeline. Seva Setu is its portal. A citizen verifies her
+mobile with an OTP, fills in her details and bank account, uploads an age proof
+and gets an application number. The block officer sees the queue and approves or rejects.
+If nobody decides within 15 days, the law approves it automatically through the system.
+My team has given you the code and data. Last month in Sonari block,
+a woman of 70 came to the counter with her grandson. On the bus, he had asked an AI
+assistant on his phone, Chad GPT or Claude, to apply for her pension. It could not.
+It even gave outdated information on the scheme. It had no way to talk to our portal
+and make an application in a way that works for AI agents. And here is the thing,
+they were okay to use the AI agent but found our website not so easy.
+I have heard the story with small variations from four blocks,
+grandsons, daughters, CSC operators themselves. If these assistants can book flights and manage
+calendars, why can they not help a widow apply for what the law already gives her?
+Fellows from your last cohort built an MCP servers or AI assistants could use Ministry
+of Statistics official digger. Do the same but not for reading data,
+for applying for something and getting an answer. So this is the job. Make it possible for any AI
+assistant to help a citizen apply for the pension and follow it up.
+Built on open standards, the assistant talks to the portal through an official channel for agents,
+the portal remains the system of record. My IT team says AI will hallucinate,
+raise privacy concerns, skip validations. There must be a way to do this reasonably well.
+Let's make the agent only work for a subset of blocks of the portal.
+By properly I mean this. An AI assistant is just another way to apply,
+following the same rules and validations as the portal or that such a form naturally should have.
+The assistant must never get anyone a pension, the counter or paper form would not.
+An application made from either place must be visible in both.
+Our applicants are old, they share phones, they sit at kiosks,
+the assistant must work for them, not for an engineer in a demo.
+Some of the worry inside my office may ease if the approving officers get an AI assistant too.
+How can it make their life easier and help them do the job well?
+She should see what is waiting for her, look at a case and approve or reject it for the
+reason recorded against her name. That is a different design.
+I will test it by pointing my own AI assistant at what you build
+and trying to get an application made for an old woman plus other scenarios I invoked.
+Then I will connect my officer's assistant and try to approve it.
+Afterwards, I will look at my own portal to see what is actually there.
+Before you build, sit at a counter for an hour in your head.
+Invent these people in detail, test with them and set up evals.
+Come and see me when it is up.
+Send me a loom video, no more than three minutes, showing what you achieved,
+the design decisions across the two MCPs, your personas and evals
+and what you learned from them. All the best.
