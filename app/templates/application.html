@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Application Status</h2>
+<table class="tbl" style="max-width:640px">
+  <tr><th>Application No</th><td>{{ a[0] }}</td></tr>
+  <tr><th>Applicant Name</th><td>{{ a[1] }}</td></tr>
+  <tr><th>Mobile</th><td>{{ a[2] }}</td></tr>
+  <tr><th>Date of Birth</th><td>{{ a[3] }}</td></tr>
+  <tr><th>Village</th><td>{{ a[4] }}</td></tr>
+  <tr><th>Block</th><td>{{ a[5] }}</td></tr>
+  <tr><th>Bank Account</th><td>{{ a[6] }}</td></tr>
+  <tr><th>IFSC</th><td>{{ a[7] }}</td></tr>
+  <tr><th>Status</th><td><b>{{ a[8] }}</b></td></tr>
+  <tr><th>Submitted</th><td>{{ a[9] }}</td></tr>
+  <tr><th>Decided</th><td>{{ a[10] or '-' }}</td></tr>
+</table>
+<p><a href="/ack/{{ app_id }}.pdf">Download Acknowledgment (PDF)</a> &middot;
+<a href="/status/connections">Connected applications</a></p>
+{% if a[8] == 'PENDING' %}
+<h3>Made a mistake?</h3>
+<p class="note">A pending application can be withdrawn. After withdrawing, you may
+submit a fresh application with the same mobile number.</p>
+<form method="post" action="/application/{{ app_id }}/withdraw"
+      onsubmit="return confirm('Withdraw application {{ a[0] }}? This cannot be undone.');">
+  <button class="btn" style="background:#a33" type="submit">Withdraw this application</button>
+</form>
+{% elif a[8] in ('WITHDRAWN', 'REJECTED') %}
+<p class="note">This application is {{ a[8].lower() }}. You may
+<a href="/apply">submit a new application</a>.</p>
+{% endif %}
+{% endblock %}

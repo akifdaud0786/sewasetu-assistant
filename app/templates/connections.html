@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Connected applications</h2>
+<p class="note">Applications currently allowed to act for {{ who }}. Each sign-in ends on its own
+at the time shown; you can end it now.</p>
+{% if rows %}
+<table class="tbl" style="max-width:720px">
+<tr><th>Application</th><th>Signed in</th><th>Ends</th><th></th></tr>
+{% for h, name, cid, c, e in rows %}
+<tr><td>{{ name or cid }}</td><td>{{ c }}</td><td>{{ e }}</td>
+<td><form method="post" action="{{ post_url }}" style="display:inline">
+  <input type="hidden" name="token_hash" value="{{ h }}">
+  <button class="btn" style="background:#a33;padding:4px 10px" type="submit">End now</button></form></td></tr>
+{% endfor %}
+</table>
+<form method="post" action="{{ post_url }}"><p><button class="btn" style="background:#555" type="submit">End all</button></p></form>
+{% else %}
+<p>No application is currently signed in for you.</p>
+{% endif %}
+{% endblock %}

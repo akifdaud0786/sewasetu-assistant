@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Program tokens</h2>
+<p><a href="/admin/dashboard">&laquo; Dashboard</a></p>
+<p class="note">Long-lived tokens for unattended programs acting as a block officer. For
+applications used by a person, the person signs in and consents through the portal's OAuth
+flow instead (see README).</p>
+{% if token %}
+<p>New token (shown once):</p>
+<pre style="background:#f4f4f4;padding:12px;border:1px solid #ccd;word-break:break-all;white-space:pre-wrap">{{ token }}</pre>
+{% endif %}
+<form method="post">
+  <label>Label</label>
+  <input type="text" name="label" placeholder="e.g. nightly reconciliation job">
+  <label>Audience (the service this token is for; its canonical URL)</label>
+  <input type="text" name="audience" placeholder="{{ issuer }}">
+  <label>Valid for (days)</label>
+  <input type="text" name="days" value="90" style="max-width:80px">
+  <p><button class="btn" type="submit">Issue token</button></p>
+</form>
+<h3>Issued program tokens</h3>
+<table class="tbl" style="max-width:860px">
+<tr><th>Label</th><th>Subject</th><th>Audience</th><th>Issued by</th><th>Created</th><th>Expires</th></tr>
+{% for l, s, a, b, c, e in rows %}
+<tr><td>{{ l }}</td><td>{{ s }}</td><td>{{ a }}</td><td>{{ b }}</td><td>{{ c }}</td><td>{{ e }}</td></tr>
+{% endfor %}
+</table>
+<h3>Your current officer sign-ins (through applications)</h3>
+{% if grants %}
+<table class="tbl" style="max-width:720px">
+<tr><th>Application</th><th>Signed in</th><th>Ends</th><th></th></tr>
+{% for h, name, cid, c, e in grants %}
+<tr><td>{{ name or cid }}</td><td>{{ c }}</td><td>{{ e }}</td>
+<td><form method="post" style="display:inline"><input type="hidden" name="revoke_subject" value="{{ subject }}">
+<input type="hidden" name="token_hash" value="{{ h }}">
+<button class="btn" style="background:#a33;padding:4px 10px" type="submit">End now</button></form></td></tr>
+{% endfor %}
+</table>
+{% else %}<p class="note">None.</p>{% endif %}
+<h3>Applications that have registered</h3>
+<table class="tbl" style="max-width:640px">
+<tr><th>Name</th><th>Registration</th><th>Since</th></tr>
+{% for n, k, c in clients %}
+<tr><td>{{ n }}</td><td>{{ k }}</td><td>{{ c }}</td></tr>
+{% endfor %}
+</table>
+{% endblock %}

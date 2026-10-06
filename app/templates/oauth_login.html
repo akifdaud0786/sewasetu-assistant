@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Sign in to Sewa Setu</h2>
+<p class="note"><b>{{ client_name }}</b> wants to {{ 'act for you on the pension portal' if role == 'citizen' else 'act as a block officer' }}.
+Sign in to continue. {% if role == 'citizen' %}<b>Enter the OTP only on this page.</b>{% endif %}</p>
+{% if role == 'citizen' %}
+  {% if not pending_mobile %}
+  <form method="post">
+    <label>Mobile Number</label>
+    <input type="text" name="mobile" maxlength="10" placeholder="10 digit mobile number">
+    <p><button class="btn" type="submit">Send OTP</button></p>
+  </form>
+  {% else %}
+  <form method="post">
+    <p class="note">An OTP has been sent to {{ pending_mobile }}.</p>
+    <label>OTP</label>
+    <input type="text" name="otp" maxlength="6" style="max-width:160px">
+    <p><button class="btn" type="submit">Verify</button></p>
+  </form>
+  {% endif %}
+{% else %}
+  <form method="post">
+    <label>Username</label>
+    <input type="text" name="username">
+    <label>Password</label>
+    <input type="password" name="password">
+    <p><button class="btn" type="submit">Sign in</button></p>
+  </form>
+{% endif %}
+{% endblock %}

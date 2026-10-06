@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Application {{ a[0] }}</h2>
+<p><a href="/admin/applications">&laquo; Back to list</a></p>
+<table class="tbl" style="max-width:640px">
+  <tr><th>Applicant Name</th><td>{{ a[1] }}</td></tr>
+  <tr><th>Mobile</th><td>{{ a[2] }}</td></tr>
+  <tr><th>Date of Birth</th><td>{{ a[3] }}</td></tr>
+  <tr><th>Gender</th><td>{{ a[4] }}</td></tr>
+  <tr><th>Marital Status</th><td>{{ a[5] }}</td></tr>
+  <tr><th>Village</th><td>{{ a[6] }}</td></tr>
+  <tr><th>Block</th><td>{{ a[7] }}</td></tr>
+  <tr><th>Bank Account</th><td>{{ a[8] }}</td></tr>
+  <tr><th>IFSC</th><td>{{ a[9] }}</td></tr>
+  <tr><th>Document</th><td>{{ a[10] or '-' }}</td></tr>
+  <tr><th>Status</th><td><b>{{ a[11] }}</b></td></tr>
+  <tr><th>Submitted</th><td>{{ a[12] }}</td></tr>
+  <tr><th>Decided</th><td>{{ a[13] or '-' }} {% if a[14] %}by {{ a[14] }}{% endif %}</td></tr>
+</table>
+{% if a[11] == 'PENDING' %}
+<h3>Decision</h3>
+<form method="post" action="/admin/approve/{{ app_id }}" style="display:inline">
+  <input type="text" name="note" placeholder="Note (optional)" style="max-width:300px">
+  <button class="btn" type="submit">Approve</button>
+</form>
+&nbsp;
+<form method="post" action="/admin/reject/{{ app_id }}" style="display:inline">
+  <input type="text" name="note" placeholder="Reason for rejection" style="max-width:300px">
+  <button class="btn" style="background:#a33" type="submit">Reject</button>
+</form>
+{% endif %}
+<h3>Audit trail</h3>
+{% if audit %}
+<table class="tbl" style="max-width:640px">
+<tr><th>When</th><th>Action</th><th>By</th><th>Note</th></tr>
+{% for at, action, actor, note in audit %}
+<tr><td>{{ at }}</td><td>{{ action }}</td><td>{{ actor }}</td><td>{{ note or '' }}</td></tr>
+{% endfor %}
+</table>
+{% else %}
+<p class="note">No audit entries (application predates audit logging).</p>
+{% endif %}
+{% endblock %}

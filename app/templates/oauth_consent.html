@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Allow this application?</h2>
+<table class="tbl" style="max-width:640px">
+  <tr><th>Application</th><td>{{ client_name }}</td></tr>
+  <tr><th>Signed in as</th><td>{{ who }} ({{ role }})</td></tr>
+  <tr><th>It will be able to</th><td>{{ scope_text }}</td></tr>
+  <tr><th>Valid for</th><td>{{ resource }}</td></tr>
+  <tr><th>Signed in until</th><td>{{ session_hours }} hours from now, then the application must ask you to sign in again</td></tr>
+</table>
+<p class="note">You can end this earlier at any time from the status portal under
+<b>Connected applications</b>{% if role == 'officer' %} (officers: from the admin dashboard){% endif %}.
+If you did not start this from an application you are using right now, choose Deny.</p>
+<form method="post" style="display:inline">
+  <button class="btn" type="submit" name="decision" value="allow">Allow</button>
+</form>
+&nbsp;
+<form method="post" style="display:inline">
+  <button class="btn" style="background:#555" type="submit" name="decision" value="deny">Deny</button>
+</form>
+{% endblock %}

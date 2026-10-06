@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="steps"><b>Step 6 of 6:</b> Preview &amp; Declaration</div>
+<h2>Please check your application before submitting</h2>
+<table class="tbl" style="max-width:640px">
+  <tr><th>Full Name</th><td>{{ data.get('applicant_name','') }}</td></tr>
+  <tr><th>Date of Birth</th><td>{{ data.get('dob','') }}</td></tr>
+  <tr><th>Gender</th><td>{{ data.get('gender','') }}</td></tr>
+  <tr><th>Marital Status</th><td>{{ data.get('marital_status','') }}</td></tr>
+  {% if data.get('marital_status') == 'Widowed' %}
+  <tr><th>Late Husband's Name</th><td>{{ data.get('husband_name','') or '-' }}</td></tr>
+  {% endif %}
+  <tr><th>Village / Town</th><td>{{ data.get('village','') }}</td></tr>
+  <tr><th>Block</th><td>{{ data.get('block','') }}</td></tr>
+  <tr><th>Bank Account</th><td>{{ data.get('bank_account','') }}</td></tr>
+  <tr><th>IFSC</th><td>{{ data.get('ifsc','') }}</td></tr>
+  <tr><th>Age Proof Document</th><td>{{ doc_name or '-' }}</td></tr>
+</table>
+<p class="note">Need to change something?
+  <a href="/form/1">Personal details</a> &middot;
+  <a href="/form/2">Address</a> &middot;
+  <a href="/form/3">Bank details</a> &middot;
+  <a href="/upload">Document</a></p>
+{% if errors %}
+<div class="flash">This application cannot be submitted yet:
+  <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+</div>
+{% else %}
+<h3>Declaration</h3>
+<p>I hereby declare that the information furnished above is true to the best of my
+knowledge and belief. I understand that furnishing false information is punishable
+under applicable law and will result in cancellation of pension.</p>
+<form method="post">
+  <p><input type="checkbox" required> I agree to the above declaration.</p>
+  <p><button class="btn" type="submit">Submit Application</button></p>
+</form>
+{% endif %}
+{% endblock %}
